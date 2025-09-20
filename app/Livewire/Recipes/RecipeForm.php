@@ -112,7 +112,17 @@ class RecipeForm extends Component
             $this->loadRecipeData();
         } else {
             // Nowa receptura - ustaw domyślne wartości
+            $this->recipe = new Recipe();
+            $this->isEditing = false;
             $this->steps = [];
+
+            // Ustaw domyślne wartości
+            $this->autor = auth()->user()->name ?? 'System';
+            $this->kategoria = 'pieczywo';
+            $this->poziom_trudnosci = 'średni';
+            $this->wersja = '1.0';
+            $this->aktywny = true;
+            $this->testowany = false;
         }
     }
 
