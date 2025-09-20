@@ -43,6 +43,9 @@
 
     @include('recipes.partials.basic-info')
     @include('recipes.partials.processes')
+
+</div>
+<div>
     @include('recipes.partials.summary')
     @include('recipes.partials.cost-analysis')
 </div>

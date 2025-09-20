@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Facades\DB;
 
 class Material extends Model
 {
@@ -43,6 +44,17 @@ class Material extends Model
     {
         return $this->belongsToMany(Recipe::class, 'recipe_materials')
             ->withPivot(['ilosc', 'jednostka', 'uwagi', 'kolejnosc', 'opcjonalny', 'sposob_przygotowania', 'temperatura_c'])
+            ->withTimestamps();
+    }
+
+    public function recipeSteps(): BelongsToMany
+    {
+        return $this->belongsToMany(RecipeStep::class, 'recipe_step_materials')
+            ->withPivot([
+                'ilosc', 'jednostka', 'uwagi', 'kolejnosc',
+                'opcjonalny', 'sposob_przygotowania', 'temperatura_c',
+                'zamienniki', 'ma_zamienniki'
+            ])
             ->withTimestamps();
     }
 
@@ -194,5 +206,46 @@ class Material extends Model
             'szt' => 'Sztuka',
             'opak' => 'Opakowanie',
         ];
+    }
+
+    /**
+     * Zwraca wszystkie receptury, które używają tego materiału
+     * (bezpośrednio, w krokach lub jako zamiennik)
+     */
+    public function getAllRelatedRecipes()
+    {
+        $recipeIds = collect();
+
+        // 1. Receptury używające materiału bezpośrednio
+        $directRecipeIds = $this->recipes()->pluck('recipes.id');
+        $recipeIds = $recipeIds->merge($directRecipeIds);
+
+        // 2. Receptury używające materiału w krokach
+        $stepRecipeIds = $this->recipeSteps()
+            ->with('recipe')
+            ->get()
+            ->pluck('recipe.id')
+            ->unique();
+        $recipeIds = $recipeIds->merge($stepRecipeIds);
+
+        // 3. Receptury gdzie materiał jest zamiennikiem
+        $substitutesRecipeIds = DB::table('recipe_step_materials')
+            ->whereNotNull('zamienniki')
+            ->where('zamienniki', '!=', '[]')
+            ->where('zamienniki', 'LIKE', '%"material_id":' . $this->id . '%')
+            ->join('recipe_steps', 'recipe_step_materials.recipe_step_id', '=', 'recipe_steps.id')
+            ->pluck('recipe_steps.recipe_id');
+        $recipeIds = $recipeIds->merge($substitutesRecipeIds);
+
+        // Zwróć unikalne receptury
+        return Recipe::whereIn('id', $recipeIds->unique())->get();
+    }
+
+    /**
+     * Zwraca liczbę receptur używających tego materiału
+     */
+    public function getRecipeCount(): int
+    {
+        return $this->getAllRelatedRecipes()->count();
     }
 }
