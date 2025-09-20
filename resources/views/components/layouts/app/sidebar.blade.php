@@ -15,6 +15,12 @@
                 <flux:navlist.group :heading="__('Platform')" class="grid">
                     <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>{{ __('Dashboard') }}</flux:navlist.item>
                 </flux:navlist.group>
+
+                <flux:navlist.group :heading="__('Zarządzanie')" class="grid">
+                    <flux:navlist.item :href="route('materials.index')" :current="request()->routeIs('materials.*')" wire:navigate>🥖 Kartoteka towarowa</flux:navlist.item>
+                    <flux:navlist.item :href="route('products.index')" :current="request()->routeIs('products.*')" wire:navigate>🍞 Kartoteka produktowa</flux:navlist.item>
+                    <flux:navlist.item :href="route('recipes.index')" :current="request()->routeIs('recipes.*')" wire:navigate>📋 Kartoteka receptur</flux:navlist.item>
+                </flux:navlist.group>
             </flux:navlist>
 
             <flux:spacer />
