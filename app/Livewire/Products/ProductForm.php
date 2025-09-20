@@ -95,6 +95,11 @@ class ProductForm extends Component
 
             $this->alergeny = $product->alergeny ?? [];
             $this->updateCalculatedFields();
+        } else {
+            // Nowy produkt - ustaw domyślne wartości
+            $this->product = new Product();
+            $this->isEditing = false;
+            $this->alergeny = [];
         }
     }
 

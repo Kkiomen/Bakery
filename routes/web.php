@@ -21,7 +21,7 @@ Route::middleware(['auth'])->group(function () {
     // Trasy dla kartoteki towarowej (surowce)
     Route::prefix('materials')->name('materials.')->group(function () {
         Route::get('/', App\Livewire\Materials\MaterialIndex::class)->name('index');
-        Route::get('/create', App\Livewire\Materials\MaterialForm::class)->name('create');
+        Route::get('/create', App\Livewire\Materials\MaterialCreate::class)->name('create');
         Route::get('/{material}', function (App\Models\Material $material) {
             return view('materials.show', compact('material'));
         })->name('show');
@@ -31,7 +31,7 @@ Route::middleware(['auth'])->group(function () {
     // Trasy dla kartoteki produktowej (gotowe wypieki)
     Route::prefix('products')->name('products.')->group(function () {
         Route::get('/', App\Livewire\Products\ProductIndex::class)->name('index');
-        Route::get('/create', App\Livewire\Products\ProductForm::class)->name('create');
+        Route::get('/create', App\Livewire\Products\ProductCreate::class)->name('create');
         Route::get('/{product}', function (App\Models\Product $product) {
             return view('products.show', compact('product'));
         })->name('show');
@@ -42,7 +42,7 @@ Route::middleware(['auth'])->group(function () {
     // Trasy dla kartoteki receptur
     Route::prefix('recipes')->name('recipes.')->group(function () {
         Route::get('/', App\Livewire\Recipes\RecipeIndex::class)->name('index');
-        Route::get('/create', App\Livewire\Recipes\RecipeForm::class)->name('create');
+        Route::get('/create', App\Livewire\Recipes\RecipeCreate::class)->name('create');
         Route::get('/{recipe}', function (App\Models\Recipe $recipe) {
             return view('recipes.show', compact('recipe'));
         })->name('show');

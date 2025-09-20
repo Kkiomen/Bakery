@@ -6,6 +6,7 @@ use App\Models\Recipe;
 use App\Models\Material;
 use App\Models\Product;
 use Livewire\Component;
+use Illuminate\Support\Facades\Auth;
 
 class RecipeForm extends Component
 {
@@ -117,7 +118,7 @@ class RecipeForm extends Component
             $this->steps = [];
 
             // Ustaw domyślne wartości
-            $this->autor = auth()->user()->name ?? 'System';
+            $this->autor = Auth::check() ? Auth::user()->name : 'System';
             $this->kategoria = 'pieczywo';
             $this->poziom_trudnosci = 'średni';
             $this->wersja = '1.0';
@@ -527,11 +528,12 @@ class RecipeForm extends Component
     public function save()
     {
         // Dostosuj reguły walidacji dla edycji
+        $rules = $this->rules;
         if ($this->isEditing) {
-            $this->rules['kod'] = 'required|string|max:50|unique:recipes,kod,' . $this->recipe->id;
+            $rules['kod'] = 'required|string|max:50|unique:recipes,kod,' . $this->recipe->id;
         }
 
-        $this->validate();
+        $this->validate($rules);
 
         $data = [
             'kod' => $this->kod,

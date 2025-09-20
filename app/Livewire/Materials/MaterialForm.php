@@ -95,6 +95,10 @@ class MaterialForm extends Component
 
             // Ustaw cenę w złotych do wyświetlania
             $this->cena_zakupu_zl = $material->cena_zakupu_gr ? number_format($material->cena_zakupu_gr / 100, 2, '.', '') : '';
+        } else {
+            // Nowy materiał - ustaw domyślne wartości
+            $this->material = new Material();
+            $this->isEditing = false;
         }
     }
 
@@ -117,11 +121,12 @@ class MaterialForm extends Component
     public function save()
     {
         // Dostosuj reguły walidacji dla edycji
+        $rules = $this->rules;
         if ($this->isEditing) {
-            $this->rules['kod'] = 'required|string|max:50|unique:materials,kod,' . $this->material->id;
+            $rules['kod'] = 'required|string|max:50|unique:materials,kod,' . $this->material->id;
         }
 
-        $this->validate();
+        $this->validate($rules);
 
         $data = [
             'kod' => $this->kod,
