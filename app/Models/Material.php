@@ -53,7 +53,7 @@ class Material extends Model
             ->withPivot([
                 'ilosc', 'jednostka', 'uwagi', 'kolejnosc',
                 'opcjonalny', 'sposob_przygotowania', 'temperatura_c',
-                'zamienniki', 'ma_zamienniki'
+                'substitutes', 'has_substitutes'
             ])
             ->withTimestamps();
     }
@@ -230,9 +230,9 @@ class Material extends Model
 
         // 3. Receptury gdzie materiał jest zamiennikiem
         $substitutesRecipeIds = DB::table('recipe_step_materials')
-            ->whereNotNull('zamienniki')
-            ->where('zamienniki', '!=', '[]')
-            ->where('zamienniki', 'LIKE', '%"material_id":' . $this->id . '%')
+            ->whereNotNull('substitutes')
+            ->where('substitutes', '!=', '[]')
+            ->where('substitutes', 'LIKE', '%"material_id":' . $this->id . '%')
             ->join('recipe_steps', 'recipe_step_materials.recipe_step_id', '=', 'recipe_steps.id')
             ->pluck('recipe_steps.recipe_id');
         $recipeIds = $recipeIds->merge($substitutesRecipeIds);

@@ -48,7 +48,7 @@ class RecipeStep extends Model
                     ->withPivot([
                         'ilosc', 'jednostka', 'uwagi', 'kolejnosc',
                         'opcjonalny', 'sposob_przygotowania', 'temperatura_c',
-                        'zamienniki', 'ma_zamienniki'
+                        'substitutes', 'has_substitutes'
                     ])
                     ->withTimestamps()
                     ->orderBy('recipe_step_materials.kolejnosc');
@@ -281,7 +281,7 @@ class RecipeStep extends Model
             return;
         }
 
-        $currentSubstitutes = json_decode($pivot->pivot->zamienniki ?? '[]', true);
+        $currentSubstitutes = json_decode($pivot->pivot->substitutes ?? '[]', true);
 
         // Sprawdź czy zamiennik już nie istnieje
         $existingIndex = collect($currentSubstitutes)->search(function ($sub) use ($substitute) {
@@ -303,8 +303,8 @@ class RecipeStep extends Model
         }
 
         $this->materials()->updateExistingPivot($material->id, [
-            'zamienniki' => json_encode($currentSubstitutes),
-            'ma_zamienniki' => count($currentSubstitutes) > 0,
+            'substitutes' => json_encode($currentSubstitutes),
+            'has_substitutes' => count($currentSubstitutes) > 0,
         ]);
     }
 
@@ -315,14 +315,14 @@ class RecipeStep extends Model
             return;
         }
 
-        $currentSubstitutes = json_decode($pivot->pivot->zamienniki ?? '[]', true);
+        $currentSubstitutes = json_decode($pivot->pivot->substitutes ?? '[]', true);
         $currentSubstitutes = collect($currentSubstitutes)->reject(function ($sub) use ($substitute) {
             return $sub['material_id'] == $substitute->id;
         })->values()->toArray();
 
         $this->materials()->updateExistingPivot($material->id, [
-            'zamienniki' => json_encode($currentSubstitutes),
-            'ma_zamienniki' => count($currentSubstitutes) > 0,
+            'substitutes' => json_encode($currentSubstitutes),
+            'has_substitutes' => count($currentSubstitutes) > 0,
         ]);
     }
 
@@ -333,13 +333,13 @@ class RecipeStep extends Model
             return [];
         }
 
-        return json_decode($pivot->pivot->zamienniki ?? '[]', true);
+        return json_decode($pivot->pivot->substitutes ?? '[]', true);
     }
 
     public function hasSubstitutes(Material $material): bool
     {
         $pivot = $this->materials()->where('material_id', $material->id)->first();
-        return $pivot ? (bool) $pivot->pivot->ma_zamienniki : false;
+        return $pivot ? (bool) $pivot->pivot->has_substitutes : false;
     }
 
     // Pobierz wszystkie dostępne zamienniki na podstawie typu materiału

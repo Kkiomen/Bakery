@@ -129,6 +129,9 @@ class RecipeForm extends Component
 
     private function loadRecipeData()
     {
+        // Załaduj recepturę z relacjami
+        $this->recipe->load(['steps.materials']);
+
         $this->kod = $this->recipe->kod;
         $this->nazwa = $this->recipe->nazwa;
         $this->opis = $this->recipe->opis ?? '';
@@ -164,8 +167,8 @@ class RecipeForm extends Component
                     'temperature' => $material->pivot->temperatura_c,
                     'optional' => $material->pivot->opcjonalny,
                     'order' => $material->pivot->kolejnosc ?? 0,
-                    'substitutes' => json_decode($material->pivot->zamienniki ?? '[]', true),
-                    'has_substitutes' => (bool) $material->pivot->ma_zamienniki,
+                    'substitutes' => json_decode($material->pivot->substitutes ?? '[]', true),
+                    'has_substitutes' => (bool) $material->pivot->has_substitutes,
                 ];
             })->sortBy('order')->values()->toArray();
 
@@ -402,6 +405,16 @@ class RecipeForm extends Component
             ->get();
     }
 
+    public function getCurrentMaterialIdForSubstitute()
+    {
+        if ($this->editingStepIndexForSubstitute !== null &&
+            $this->editingMaterialIndex !== null &&
+            isset($this->steps[$this->editingStepIndexForSubstitute]['materials'][$this->editingMaterialIndex])) {
+            return $this->steps[$this->editingStepIndexForSubstitute]['materials'][$this->editingMaterialIndex]['material_id'];
+        }
+        return null;
+    }
+
     // Zarządzanie krokami
     public function openStepModal()
     {
@@ -598,8 +611,8 @@ class RecipeForm extends Component
                         'opcjonalny' => $material['optional'],
                         'sposob_przygotowania' => $material['preparation'],
                         'temperatura_c' => $material['temperature'],
-                        'zamienniki' => json_encode($material['substitutes'] ?? []),
-                        'ma_zamienniki' => isset($material['has_substitutes']) ? $material['has_substitutes'] : false,
+                        'substitutes' => json_encode($material['substitutes'] ?? []),
+                        'has_substitutes' => isset($material['has_substitutes']) ? $material['has_substitutes'] : false,
                     ]);
                 }
             }
@@ -777,12 +790,30 @@ class RecipeForm extends Component
         $materials = Material::active()->orderBy('typ')->orderBy('nazwa')->get();
         $stepTypes = \App\Models\RecipeStep::getAvailableTypes();
 
+        // Przygotuj dane dla widoku
+        try {
+            $allMaterials = $this->getAllMaterials();
+            $costAnalysis = $this->getCostAnalysis();
+        } catch (\Exception $e) {
+            $allMaterials = collect();
+            $costAnalysis = [
+                'total_cost' => 0,
+                'cost_per_portion' => 0,
+                'cost_per_100g' => 0,
+                'total_weight' => 0,
+                'material_costs' => [],
+                'substitute_savings' => []
+            ];
+        }
+
         return view('livewire.recipes.recipe-form', [
             'categories' => $categories,
             'difficulties' => $difficulties,
             'products' => $products,
             'materials' => $materials,
             'stepTypes' => $stepTypes,
+            'allMaterials' => $allMaterials,
+            'costAnalysis' => $costAnalysis,
         ]);
     }
 }

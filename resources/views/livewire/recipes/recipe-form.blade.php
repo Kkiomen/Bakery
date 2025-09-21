@@ -462,10 +462,6 @@
                     </div>
                 </div>
 
-                @php
-                    $allMaterials = $this->getAllMaterials();
-                @endphp
-
                 @if($allMaterials->count() > 0)
                     <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
                         <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
@@ -600,9 +596,6 @@
                       </div>
                   </div>
 
-                  @php
-                      $costAnalysis = $this->getCostAnalysis();
-                  @endphp
 
                   {{-- Podsumowanie kosztów --}}
                   <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -1209,9 +1202,9 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-1">
                                         Materiał zamiennik <span class="text-red-500">*</span>
                                     </label>
-                                    @if($editingStepIndexForSubstitute !== null && $editingMaterialIndex !== null)
+                                    @if($this->getCurrentMaterialIdForSubstitute())
                                         @php
-                                            $currentMaterialId = $steps[$editingStepIndexForSubstitute]['materials'][$editingMaterialIndex]['material_id'];
+                                            $currentMaterialId = $this->getCurrentMaterialIdForSubstitute();
                                             $availableSubstitutes = $this->getAvailableSubstitutesForMaterial($currentMaterialId);
                                         @endphp
                                         <select wire:model.live="selectedSubstituteMaterialId"

@@ -80,8 +80,8 @@ class NewRecipeSeeder extends Seeder
                 ];
 
                 $step1->materials()->updateExistingPivot($drozdze->id, [
-                    'zamienniki' => json_encode($zamienniki),
-                    'ma_zamienniki' => true,
+                    'substitutes' => json_encode($zamienniki),
+                    'has_substitutes' => true,
                 ]);
             }
         }
@@ -139,8 +139,8 @@ class NewRecipeSeeder extends Seeder
                 ];
 
                 $step3->materials()->updateExistingPivot($maslo->id, [
-                    'zamienniki' => json_encode($zamienniki),
-                    'ma_zamienniki' => true,
+                    'substitutes' => json_encode($zamienniki),
+                    'has_substitutes' => true,
                 ]);
             }
         }

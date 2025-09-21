@@ -206,6 +206,26 @@ class MaterialSeeder extends Seeder
                 'aktywny' => true,
             ],
 
+            // Woda
+            [
+                'kod' => 'WOD-001',
+                'nazwa' => 'Woda pitna',
+                'opis' => 'Czysta woda pitna do wypieków',
+                'typ' => 'płyny',
+                'jednostka_podstawowa' => 'l',
+                'waga_opakowania' => 1.0,
+                'dostawca' => 'Wodociągi miejskie',
+                'stan_aktualny' => 1000.0,
+                'stan_minimalny' => 100.0,
+                'stan_optymalny' => 1000.0,
+                'cena_zakupu_gr' => 1, // 0.01 zł/l
+                'stawka_vat' => '8',
+                'dni_waznosci' => 999,
+                'data_ostatniej_dostawy' => now(),
+                'uwagi' => 'Zawsze dostępna',
+                'aktywny' => true,
+            ],
+
             // Dodatki
             [
                 'kod' => 'DOD-001',

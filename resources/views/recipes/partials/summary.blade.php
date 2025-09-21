@@ -26,8 +26,8 @@
             }
 
             // Zbierz zamienniki
-            if ($material->pivot->ma_zamienniki && $material->pivot->zamienniki) {
-                $substitutes = json_decode($material->pivot->zamienniki, true) ?? [];
+            if ($material->pivot->has_substitutes && $material->pivot->substitutes) {
+                $substitutes = json_decode($material->pivot->substitutes, true) ?? [];
                 $allMaterials[$materialId]['substitutes'] = array_merge($allMaterials[$materialId]['substitutes'], $substitutes);
             }
         }

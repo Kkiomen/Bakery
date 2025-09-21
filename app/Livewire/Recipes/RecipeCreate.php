@@ -424,15 +424,15 @@ class RecipeCreate extends Component
                             'opcjonalny' => $material['optional'],
                             'sposob_przygotowania' => $material['preparation'],
                             'temperatura_c' => $material['temperature'],
-                            'zamienniki' => json_encode([]),
-                            'ma_zamienniki' => false,
+                            'substitutes' => json_encode([]),
+                            'has_substitutes' => false,
                         ]);
                     }
                 }
             }
 
             session()->flash('success', 'Receptura została pomyślnie dodana!');
-            
+
             return redirect()->route('recipes.edit', $recipe);
 
         } catch (\Exception $e) {

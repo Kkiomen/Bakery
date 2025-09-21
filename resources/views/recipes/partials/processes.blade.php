@@ -59,9 +59,9 @@
                                                     </div>
 
                                                     {{-- Zamienniki --}}
-                                                    @if($material->pivot->ma_zamienniki && $material->pivot->zamienniki)
+                                                    @if($material->pivot->has_substitutes && $material->pivot->substitutes)
                                                         @php
-                                                            $substitutes = json_decode($material->pivot->zamienniki, true) ?? [];
+                                                            $substitutes = json_decode($material->pivot->substitutes, true) ?? [];
                                                         @endphp
                                                         @if(count($substitutes) > 0)
                                                             <div class="mt-1 pl-2 border-l-2 border-green-200">
