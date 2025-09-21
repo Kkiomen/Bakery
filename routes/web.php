@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('bakery-homepage');
 })->name('home');
 
 Route::view('dashboard', 'dashboard')
@@ -48,6 +48,28 @@ Route::middleware(['auth'])->group(function () {
         })->name('show');
         Route::get('/{recipe}/edit', App\Livewire\Recipes\RecipeForm::class)->name('edit');
         Route::get('/{recipe}/steps', App\Livewire\Recipes\RecipeSteps::class)->name('steps');
+    });
+
+    // Trasy dla zarządzania produkcją
+    Route::prefix('production')->name('production.')->group(function () {
+        Route::get('/', App\Livewire\Production\ProductionOrdersList::class)->name('orders.index');
+        Route::get('/calendar', App\Livewire\Production\ProductionCalendar::class)->name('calendar');
+        Route::get('/orders/create', function () {
+            return view('production.orders.create');
+        })->name('orders.create');
+        Route::get('/orders/{order}', function (App\Models\ProductionOrder $order) {
+            return view('production.orders.show', compact('order'));
+        })->name('orders.show');
+        Route::get('/orders/{order}/edit', function (App\Models\ProductionOrder $order) {
+            return view('production.orders.edit', compact('order'));
+        })->name('orders.edit');
+    });
+
+    // Trasy dla panelu piekarzy
+    Route::prefix('baker')->name('baker.')->group(function () {
+        Route::get('/', function () {
+            return view('baker.dashboard');
+        })->name('dashboard');
     });
 });
 

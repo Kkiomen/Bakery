@@ -76,6 +76,11 @@ class Product extends Model
           ->orderByPivot('priorytet');
     }
 
+    public function recipes(): HasMany
+    {
+        return $this->hasMany(Recipe::class);
+    }
+
     // Akcesory i mutatory
     protected function wagaKg(): Attribute
     {

@@ -20,6 +20,11 @@
                     <flux:navlist.item :href="route('materials.index')" :current="request()->routeIs('materials.*')" wire:navigate>🥖 Kartoteka towarowa</flux:navlist.item>
                     <flux:navlist.item :href="route('products.index')" :current="request()->routeIs('products.*')" wire:navigate>🍞 Kartoteka produktowa</flux:navlist.item>
                     <flux:navlist.item :href="route('recipes.index')" :current="request()->routeIs('recipes.*')" wire:navigate>📋 Kartoteka receptur</flux:navlist.item>
+                    <flux:navlist.item :href="route('production.orders.index')" :current="request()->routeIs('production.*')" wire:navigate>🏭 Zarządzanie produkcją</flux:navlist.item>
+                </flux:navlist.group>
+
+                <flux:navlist.group :heading="__('Produkcja')" class="grid">
+                    <flux:navlist.item :href="route('baker.dashboard')" :current="request()->routeIs('baker.*')" wire:navigate>🧑‍🍳 Panel Piekarza</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 

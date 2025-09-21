@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
             ProductSeeder::class,
             MaterialSeeder::class,
             RecipeSeeder::class,
+            ProductionOrderSeeder::class,
         ]);
     }
 }
