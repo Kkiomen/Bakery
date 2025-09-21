@@ -53,6 +53,7 @@ class DatabaseSeeder extends Seeder
             UpdateProductionOrderItemsSeeder::class,
 
             DeliverySeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }

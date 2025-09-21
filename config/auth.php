@@ -40,6 +40,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'b2b' => [
+            'driver' => 'session',
+            'provider' => 'b2b_clients',
+        ],
     ],
 
     /*
@@ -63,6 +67,10 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
+        ],
+        'b2b_clients' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\B2BClient::class,
         ],
 
         // 'users' => [

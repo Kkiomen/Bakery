@@ -21,8 +21,10 @@
                     <flux:navlist.item :href="route('products.index')" :current="request()->routeIs('products.*')" wire:navigate>🍞 Kartoteka produktowa</flux:navlist.item>
                     <flux:navlist.item :href="route('recipes.index')" :current="request()->routeIs('recipes.*')" wire:navigate>📋 Kartoteka receptur</flux:navlist.item>
                     <flux:navlist.item :href="route('production.orders.index')" :current="request()->routeIs('production.*')" wire:navigate>🏭 Zarządzanie produkcją</flux:navlist.item>
-                    <flux:navlist.item :href="route('contractors.index')" :current="request()->routeIs('contractors.*')" wire:navigate>👥 Kontrahenci</flux:navlist.item>
-                </flux:navlist.group>
+        <flux:navlist.item :href="route('contractors.index')" :current="request()->routeIs('contractors.*')" wire:navigate>👥 Kontrahenci</flux:navlist.item>
+        <flux:navlist.item :href="route('admin.b2b-clients')" :current="request()->routeIs('admin.b2b-clients')" wire:navigate>🏢 Klienci B2B</flux:navlist.item>
+        <flux:navlist.item :href="route('admin.impersonate')" :current="request()->routeIs('admin.impersonate')" wire:navigate>🎭 Testuj jako klient</flux:navlist.item>
+    </flux:navlist.group>
 
                 <flux:navlist.group :heading="__('Produkcja')" class="grid">
                     <flux:navlist.item :href="route('baker.dashboard')" :current="request()->routeIs('baker.*')" wire:navigate>🧑‍🍳 Panel Piekarza</flux:navlist.item>

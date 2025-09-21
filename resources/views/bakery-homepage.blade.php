@@ -211,6 +211,36 @@
                 </ul>
             </div>
         </div>
+        
+        <!-- Dane testowe -->
+        <div class="border-t border-white/10 bg-white/5">
+            <div class="max-w-7xl mx-auto px-4 py-6">
+                <h3 class="font-semibold text-lg mb-4">🧪 Dane testowe do systemu</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <h4 class="font-semibold mb-3">👨‍💼 Panel Administratora</h4>
+                        <p class="mb-2"><strong>URL:</strong> <a href="/login" class="text-yellow-300 hover:underline">/login</a></p>
+                        <p class="mb-1"><strong>Email:</strong> <code class="bg-white/20 px-2 py-1 rounded">admin@piekarnia.pl</code></p>
+                        <p class="mb-3"><strong>Hasło:</strong> <code class="bg-white/20 px-2 py-1 rounded">admin123</code></p>
+                        <p class="text-xs opacity-80">Dostęp do zarządzania produkcją, klientami B2B, dostawami</p>
+                    </div>
+                    
+                    <div class="bg-white/10 rounded-lg p-4">
+                        <h4 class="font-semibold mb-3">🏢 Portal B2B (przykładowe konto)</h4>
+                        <p class="mb-2"><strong>URL:</strong> <a href="/b2b/login" class="text-yellow-300 hover:underline">/b2b/login</a></p>
+                        <p class="mb-1"><strong>Email:</strong> <code class="bg-white/20 px-2 py-1 rounded">zamowienia@grandpalace.pl</code></p>
+                        <p class="mb-3"><strong>Hasło:</strong> <code class="bg-white/20 px-2 py-1 rounded">password123</code></p>
+                        <p class="text-xs opacity-80">Hotel Grand Palace - poziom Złoty, zamówienia cykliczne</p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
+                    <h4 class="font-semibold mb-2">🎭 Funkcja przełączania dla administratora</h4>
+                    <p class="text-sm">Po zalogowaniu jako administrator, wejdź na <a href="/admin/impersonate" class="text-yellow-300 hover:underline">/admin/impersonate</a> aby przełączyć się na dowolne konto B2B i testować system z perspektywy klienta.</p>
+                </div>
+            </div>
+        </div>
+
         <div class="border-t border-white/10">
             <div class="max-w-7xl mx-auto px-4 py-4 text-xs opacity-70">© <span x-text="new Date().getFullYear()"></span> Słodkie Ziarno. Wszelkie prawa zastrzeżone.</div>
         </div>

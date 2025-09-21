@@ -75,6 +75,15 @@ Route::middleware(['auth'])->group(function () {
     // Test Livewire
     Route::get('/test-livewire', App\Livewire\Test\SimpleTest::class)->name('test-livewire');
 
+    // Panel administracyjny B2B
+    Route::get('/admin/b2b-clients', function () {
+        return view('admin.b2b-clients');
+    })->name('admin.b2b-clients');
+
+    Route::get('/admin/impersonate', function () {
+        return view('admin.impersonate');
+    })->name('admin.impersonate');
+
     // Trasy dla kontrahentów
     Route::prefix('contractors')->name('contractors.')->group(function () {
         Route::get('/', function () {
@@ -84,6 +93,7 @@ Route::middleware(['auth'])->group(function () {
             return view('contractors.edit', compact('contractor'));
         })->name('edit');
     });
+
 
     // Trasy dla zarządzania dostawami (właściciel/admin)
     Route::prefix('deliveries')->name('deliveries.')->group(function () {
@@ -115,6 +125,53 @@ Route::middleware(['auth'])->group(function () {
             return view('driver.delivery-details', compact('delivery'));
         })->name('deliveries.show');
     });
+});
+
+// Trasy dla portalu B2B (poza middleware auth)
+Route::prefix('b2b')->name('b2b.')->group(function () {
+    // Publiczne trasy (dla niezalogowanych)
+    Route::middleware('guest:b2b')->group(function () {
+        Route::get('/login', App\Livewire\B2B\Auth\Login::class)->name('login');
+    });
+
+    // Chronione trasy (dla zalogowanych klientów B2B)
+    Route::middleware('auth:b2b')->group(function () {
+        Route::get('/', function () {
+            return redirect()->route('b2b.dashboard');
+        });
+        Route::get('/dashboard', function () {
+            return view('b2b.dashboard');
+        })->name('dashboard');
+        Route::get('/catalog', function () {
+            return view('b2b.catalog');
+        })->name('catalog');
+        Route::get('/orders', function () {
+            return view('b2b.orders.index');
+        })->name('orders.index');
+        Route::get('/orders/create', function () {
+            return view('b2b.orders.create');
+        })->name('orders.create');
+        Route::get('/orders/{order}', function (\App\Models\B2BOrder $order) {
+            return view('b2b.orders.show', compact('order'));
+        })->name('orders.show');
+        Route::get('/profile', function () {
+            return view('b2b.profile');
+        })->name('profile');
+        Route::get('/notifications', function () {
+            return view('b2b.notifications');
+        })->name('notifications');
+        Route::get('/recurring-orders', function () {
+            return view('b2b.recurring-orders');
+        })->name('recurring-orders');
+    });
+
+    // Wylogowanie
+    Route::post('/logout', function () {
+        Auth::guard('b2b')->logout();
+        session()->invalidate();
+        session()->regenerateToken();
+        return redirect()->route('b2b.login')->with('success', 'Zostałeś pomyślnie wylogowany.');
+    })->name('logout');
 });
 
 require __DIR__.'/auth.php';
