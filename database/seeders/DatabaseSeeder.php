@@ -35,6 +35,9 @@ class DatabaseSeeder extends Seeder
             MaterialSeeder::class,
             RecipeSeeder::class,
 
+            // Kontrahenty
+            ContractorSeeder::class,
+
             // Przypisanie przepisów do produktów
             AssignRecipesToProductsSeeder::class,
 
@@ -48,6 +51,8 @@ class DatabaseSeeder extends Seeder
             // Zlecenia produkcyjne
             ProductionOrderSeeder::class,
             UpdateProductionOrderItemsSeeder::class,
+
+            DeliverySeeder::class,
         ]);
     }
 }

@@ -377,4 +377,32 @@ class BakerDashboard extends Component
 
         return $days[$date->format('l')] ?? $date->format('D');
     }
+
+    public function moveStepToNextStep($productId, $currentStep)
+    {
+        $items = ProductionOrderItem::with('productionOrder')
+            ->where('product_id', $productId)
+            ->where('current_step', $currentStep)
+            ->whereHas('productionOrder', function ($query) {
+                $query->whereDate('data_produkcji', $this->selectedDate)
+                      ->whereNotIn('status', ['anulowane']);
+            })
+            ->whereNotIn('status', ['zakonczone'])
+            ->get();
+
+        $movedCount = 0;
+        foreach ($items as $item) {
+            if ($item->current_step !== 'completed') {
+                $item->moveToNextStep();
+                $movedCount++;
+            }
+        }
+
+        if ($movedCount > 0) {
+            $stepLabel = $this->getStepLabel($currentStep);
+            session()->flash('success', "Przeniesiono {$movedCount} pozycji z procesu '{$stepLabel}' na kolejny krok.");
+        } else {
+            session()->flash('info', 'Wszystkie pozycje z tego procesu są już zakończone.');
+        }
+    }
 }

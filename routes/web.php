@@ -71,6 +71,50 @@ Route::middleware(['auth'])->group(function () {
             return view('baker.dashboard');
         })->name('dashboard');
     });
+
+    // Test Livewire
+    Route::get('/test-livewire', App\Livewire\Test\SimpleTest::class)->name('test-livewire');
+
+    // Trasy dla kontrahentów
+    Route::prefix('contractors')->name('contractors.')->group(function () {
+        Route::get('/', function () {
+            return view('contractors.index');
+        })->name('index');
+        Route::get('/{contractor}/edit', function (\App\Models\Contractor $contractor) {
+            return view('contractors.edit', compact('contractor'));
+        })->name('edit');
+    });
+
+    // Trasy dla zarządzania dostawami (właściciel/admin)
+    Route::prefix('deliveries')->name('deliveries.')->group(function () {
+        Route::get('/test', function () {
+            return view('deliveries.test');
+        })->name('test');
+        Route::get('/simple-test', App\Livewire\Deliveries\SimpleDeliveryTest::class)->name('simple-test');
+        Route::get('/simple', function () {
+            return view('deliveries.simple');
+        })->name('simple');
+        Route::get('/', function () {
+            return view('deliveries.index');
+        })->name('index');
+        Route::get('/create', function () {
+            return view('deliveries.create');
+        })->name('create');
+        Route::get('/{delivery}', function (App\Models\Delivery $delivery) {
+            return view('deliveries.show', compact('delivery'));
+        })->name('show');
+        Route::get('/{delivery}/edit', function (App\Models\Delivery $delivery) {
+            return view('deliveries.edit', compact('delivery'));
+        })->name('edit');
+    });
+
+    // Trasy dla panelu kierowcy
+    Route::prefix('driver')->name('driver.')->group(function () {
+        Route::get('/', App\Livewire\Driver\DriverDashboard::class)->name('dashboard');
+        Route::get('/deliveries/{delivery}', function (App\Models\Delivery $delivery) {
+            return view('driver.delivery-details', compact('delivery'));
+        })->name('deliveries.show');
+    });
 });
 
 require __DIR__.'/auth.php';

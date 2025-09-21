@@ -47,6 +47,12 @@ class User extends Authenticatable
         ];
     }
 
+    // Relacje dla dostaw
+    public function deliveriesAsDriver()
+    {
+        return $this->hasMany(\App\Models\Delivery::class, 'driver_id');
+    }
+
     /**
      * Get the user's initials
      */

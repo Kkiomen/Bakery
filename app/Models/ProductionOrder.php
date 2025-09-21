@@ -42,6 +42,16 @@ class ProductionOrder extends Model
         return $this->hasMany(ProductionOrderItem::class);
     }
 
+    public function deliveries(): HasMany
+    {
+        return $this->hasMany(Delivery::class);
+    }
+
+    public function contractor(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Contractor::class);
+    }
+
     // Akcesory
     protected function statusLabel(): Attribute
     {

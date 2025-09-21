@@ -21,10 +21,16 @@
                     <flux:navlist.item :href="route('products.index')" :current="request()->routeIs('products.*')" wire:navigate>🍞 Kartoteka produktowa</flux:navlist.item>
                     <flux:navlist.item :href="route('recipes.index')" :current="request()->routeIs('recipes.*')" wire:navigate>📋 Kartoteka receptur</flux:navlist.item>
                     <flux:navlist.item :href="route('production.orders.index')" :current="request()->routeIs('production.*')" wire:navigate>🏭 Zarządzanie produkcją</flux:navlist.item>
+                    <flux:navlist.item :href="route('contractors.index')" :current="request()->routeIs('contractors.*')" wire:navigate>👥 Kontrahenci</flux:navlist.item>
                 </flux:navlist.group>
 
                 <flux:navlist.group :heading="__('Produkcja')" class="grid">
                     <flux:navlist.item :href="route('baker.dashboard')" :current="request()->routeIs('baker.*')" wire:navigate>🧑‍🍳 Panel Piekarza</flux:navlist.item>
+                </flux:navlist.group>
+
+                <flux:navlist.group :heading="__('Dostawy')" class="grid">
+                    <flux:navlist.item :href="route('deliveries.index')" :current="request()->routeIs('deliveries.*')" wire:navigate>📦 Zarządzanie dostawami</flux:navlist.item>
+                    <flux:navlist.item :href="route('driver.dashboard')" :current="request()->routeIs('driver.*')" wire:navigate>🚚 Panel Kierowcy</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 
@@ -138,6 +144,7 @@
 
         {{ $slot }}
 
+        @livewireScripts
         @fluxScripts
     </body>
 </html>
