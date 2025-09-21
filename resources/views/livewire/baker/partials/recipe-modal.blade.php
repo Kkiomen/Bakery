@@ -3,9 +3,14 @@
     <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
         <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                <h3 class="text-lg font-medium text-gray-900">
-                    📋 Przepis: {{ $selectedProduct->nazwa }}
-                </h3>
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">
+                        📋 Przepis: {{ $selectedProduct->nazwa }}
+                    </h3>
+                    <p class="text-sm text-blue-600 font-medium mt-1">
+                        🎯 Na łączną ilość: {{ $selectedProductTotalQuantity }} szt
+                    </p>
+                </div>
                 <button wire:click="closeRecipeModal"
                         class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -18,7 +23,13 @@
                 @if($selectedProduct->recipes && $selectedProduct->recipes->count() > 0)
                     @foreach($selectedProduct->recipes as $recipe)
                         <div class="mb-8">
-                            <h4 class="text-xl font-semibold text-gray-900 mb-4">{{ $recipe->nazwa }}</h4>
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-xl font-semibold text-gray-900">{{ $recipe->nazwa }}</h4>
+                                <div class="text-right">
+                                    <div class="text-sm text-gray-600">Przepis na {{ $recipe->ilosc_porcji }} szt</div>
+                                    <div class="text-sm font-medium text-blue-600">Skalowanie: ×{{ number_format($selectedProductTotalQuantity / ($recipe->ilosc_porcji ?: 1), 1) }}</div>
+                                </div>
+                            </div>
 
                             {{-- Składniki --}}
                             <div class="mb-6">
@@ -38,11 +49,20 @@
                                         }
 
                                         // Grupuj materiały według ID (żeby nie duplikować)
-                                        $groupedMaterials = $allMaterials->groupBy('id')->map(function($materials) {
+                                        $groupedMaterials = $allMaterials->groupBy('id')->map(function($materials) use ($recipe, $selectedProductTotalQuantity) {
                                             $first = $materials->first();
                                             // Sumuj ilości jeśli materiał występuje w wielu krokach
-                                            $totalAmount = $materials->sum('pivot.ilosc');
-                                            $first->total_amount = $totalAmount;
+                                            $recipeAmount = $materials->sum('pivot.ilosc');
+
+                                            // Przelicz na podstawie całkowitej ilości potrzebnej
+                                            // Przepis jest na X porcji, a potrzebujemy Y sztuk
+                                            $recipePortion = $recipe->ilosc_porcji ?: 1;
+                                            $scalingFactor = $selectedProductTotalQuantity / $recipePortion;
+                                            $totalAmount = $recipeAmount * $scalingFactor;
+
+                                            $first->recipe_amount = $recipeAmount; // Oryginalna ilość z przepisu
+                                            $first->total_amount = $totalAmount; // Przeliczona ilość
+                                            $first->scaling_factor = $scalingFactor; // Współczynnik skalowania
                                             return $first;
                                         });
                                     @endphp
@@ -51,11 +71,26 @@
                                         <div class="space-y-4">
                                             @foreach($groupedMaterials as $material)
                                                 <div class="border-l-4 border-blue-500 pl-4 py-2">
-                                                    <div class="flex justify-between items-center mb-2">
-                                                        <span class="text-gray-700 font-medium">{{ $material->nazwa }}</span>
-                                                        <span class="font-bold text-gray-900 bg-blue-100 px-2 py-1 rounded">
-                                                            {{ $material->total_amount }} {{ $material->pivot->jednostka }}
-                                                        </span>
+                                                    <div class="flex justify-between items-start mb-2">
+                                                        <div class="flex-1">
+                                                            <span class="text-gray-700 font-medium">{{ $material->nazwa }}</span>
+                                                            <div class="text-xs text-gray-500 mt-1">
+                                                                Przepis: {{ number_format($material->recipe_amount, 2) }} {{ $material->pivot->jednostka }}
+                                                                × {{ number_format($material->scaling_factor, 1) }} =
+                                                                <span class="font-medium text-blue-600">{{ number_format($material->total_amount, 2) }} {{ $material->pivot->jednostka }}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-right">
+                                                            <span class="font-bold text-gray-900 bg-blue-100 px-3 py-2 rounded-lg text-lg">
+                                                                {{ number_format($material->total_amount, 2) }} {{ $material->pivot->jednostka }}
+                                                            </span>
+                                                            {{-- Przelicznik na gramy jeśli jednostka to kg --}}
+                                                            @if(strtolower($material->pivot->jednostka) === 'kg')
+                                                                <div class="text-sm text-orange-600 font-medium mt-1 bg-orange-50 px-2 py-1 rounded">
+                                                                    = {{ number_format($material->total_amount * 1000, 0) }} g
+                                                                </div>
+                                                            @endif
+                                                        </div>
                                                     </div>
 
                                                     {{-- Zamienniki składnika --}}
@@ -75,7 +110,7 @@
                                                                         @php
                                                                             $substituteMaterial = \App\Models\Material::find($substitute['material_id'] ?? null);
                                                                             $ratio = $substitute['wspolczynnik_przeliczenia'] ?? 1;
-                                                                            $newAmount = $material->total_amount * $ratio;
+                                                                            $newAmount = $material->total_amount * $ratio; // Już przeliczone na całkowitą ilość
                                                                         @endphp
                                                                         @if($substituteMaterial)
                                                                             <div class="flex justify-between items-center text-sm">
@@ -84,6 +119,11 @@
                                                                                 </span>
                                                                                 <span class="font-medium text-orange-900">
                                                                                     {{ number_format($newAmount, 2) }} {{ $material->pivot->jednostka }}
+                                                                                    @if(strtolower($material->pivot->jednostka) === 'kg')
+                                                                                        <span class="text-xs text-orange-600 ml-1">
+                                                                                            ({{ number_format($newAmount * 1000, 0) }} g)
+                                                                                        </span>
+                                                                                    @endif
                                                                                 </span>
                                                                             </div>
                                                                             @if(isset($substitute['uwagi']) && $substitute['uwagi'])
@@ -131,6 +171,28 @@
                                 @else
                                     <p class="text-gray-500">Brak zdefiniowanych kroków</p>
                                 @endif
+                            </div>
+
+                            {{-- Podsumowanie produkcji --}}
+                            <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <h5 class="text-lg font-medium text-blue-800 mb-3">📊 Podsumowanie produkcji:</h5>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-blue-600">{{ $selectedProductTotalQuantity }}</div>
+                                        <div class="text-blue-700">sztuk do wyprodukowania</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-blue-600">{{ $recipe->ilosc_porcji }}</div>
+                                        <div class="text-blue-700">sztuk z przepisu</div>
+                                    </div>
+                                    <div class="text-center">
+                                        <div class="text-2xl font-bold text-blue-600">×{{ number_format($selectedProductTotalQuantity / ($recipe->ilosc_porcji ?: 1), 1) }}</div>
+                                        <div class="text-blue-700">razy więcej składników</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 text-center text-sm text-blue-600">
+                                    💡 Wszystkie składniki są już przeliczone na całkowitą ilość potrzebną na dzisiaj
+                                </div>
                             </div>
                         </div>
                     @endforeach

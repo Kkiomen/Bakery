@@ -30,10 +30,24 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
+            // Podstawowe dane
             ProductSeeder::class,
             MaterialSeeder::class,
             RecipeSeeder::class,
+
+            // Przypisanie przepisów do produktów
+            AssignRecipesToProductsSeeder::class,
+
+            // Stworzenie przepisów dla produktów bez przepisów
+            AllProductsRecipesSeeder::class,
+
+            // Dodanie zamienników składników
+            MaterialSubstitutesSeeder::class,
+            AdditionalMaterialSubstitutesSeeder::class,
+
+            // Zlecenia produkcyjne
             ProductionOrderSeeder::class,
+            UpdateProductionOrderItemsSeeder::class,
         ]);
     }
 }

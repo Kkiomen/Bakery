@@ -14,6 +14,10 @@ class BakerDashboard extends Component
     public $showRecipeModal = false;
     public $selectedProduct = null;
     public $selectedStep = null;
+    public $selectedProductTotalQuantity = 0;
+    public $showIngredientsSummary = false;
+    public $showStepIngredientsModal = false;
+    public $stepIngredientsData = [];
 
     public function mount()
     {
@@ -32,6 +36,18 @@ class BakerDashboard extends Component
             'recipes.steps.materials'
         ])->findOrFail($productId);
         $this->selectedStep = $step;
+
+        // Oblicz całkowitą ilość produktu do wyprodukowania na wybrany dzień
+        $totalQuantityNeeded = ProductionOrderItem::with('productionOrder')
+            ->where('product_id', $productId)
+            ->whereHas('productionOrder', function ($query) {
+                $query->whereDate('data_produkcji', $this->selectedDate)
+                      ->whereNotIn('status', ['anulowane']);
+            })
+            ->whereNotIn('status', ['zakonczone'])
+            ->sum('ilosc');
+
+        $this->selectedProductTotalQuantity = $totalQuantityNeeded;
         $this->showRecipeModal = true;
     }
 
@@ -40,6 +56,7 @@ class BakerDashboard extends Component
         $this->showRecipeModal = false;
         $this->selectedProduct = null;
         $this->selectedStep = null;
+        $this->selectedProductTotalQuantity = 0;
     }
 
     public function updateItemStep($itemId, $step)
@@ -64,6 +81,181 @@ class BakerDashboard extends Component
         $item->moveToPreviousStep();
 
         session()->flash('success', 'Cofnięto do poprzedniego kroku.');
+    }
+
+    public function moveAllToNextStep($productId)
+    {
+        // Pobierz wszystkie pozycje dla danego produktu na wybrany dzień
+        $items = ProductionOrderItem::with('productionOrder')
+            ->where('product_id', $productId)
+            ->whereHas('productionOrder', function ($query) {
+                $query->whereDate('data_produkcji', $this->selectedDate)
+                      ->whereNotIn('status', ['anulowane']);
+            })
+            ->whereNotIn('status', ['zakonczone'])
+            ->get();
+
+        $movedCount = 0;
+        foreach ($items as $item) {
+            if ($item->current_step !== 'completed') {
+                $item->moveToNextStep();
+                $movedCount++;
+            }
+        }
+
+        if ($movedCount > 0) {
+            session()->flash('success', "Przeniesiono {$movedCount} pozycji na kolejny krok.");
+        } else {
+            session()->flash('info', 'Wszystkie pozycje są już zakończone.');
+        }
+    }
+
+    public function showIngredientsSummary()
+    {
+        $this->showIngredientsSummary = true;
+    }
+
+    public function closeIngredientsSummary()
+    {
+        $this->showIngredientsSummary = false;
+    }
+
+    public function showStepIngredients($productId, $step)
+    {
+        $product = Product::with([
+            'recipes.steps.materials'
+        ])->findOrFail($productId);
+
+        // Oblicz całkowitą ilość produktu w danym kroku
+        $totalQuantityInStep = ProductionOrderItem::with('productionOrder')
+            ->where('product_id', $productId)
+            ->where('current_step', $step)
+            ->whereHas('productionOrder', function ($query) {
+                $query->whereDate('data_produkcji', $this->selectedDate)
+                      ->whereNotIn('status', ['anulowane']);
+            })
+            ->whereNotIn('status', ['zakonczone'])
+            ->sum('ilosc');
+
+        if ($totalQuantityInStep == 0) {
+            session()->flash('info', 'Brak produktów w tym kroku.');
+            return;
+        }
+
+        // Sprawdź czy produkt ma przepis
+        if (!$product->recipes || $product->recipes->count() == 0) {
+            session()->flash('info', 'Ten produkt nie ma przypisanego przepisu.');
+            return;
+        }
+
+        $recipe = $product->recipes->first();
+
+        // Mapowanie kroków produkcji na kroki przepisu
+        $stepMapping = [
+            'preparing' => ['przygotowanie'],
+            'mixing' => ['mieszanie', 'przygotowanie'],
+            'first_rise' => ['wyrastanie'],
+            'shaping' => ['formowanie'],
+            'second_rise' => ['wyrastanie'],
+            'baking' => ['pieczenie'],
+            'cooling' => [],
+            'packaging' => [],
+        ];
+
+        $recipeStepTypes = $stepMapping[$step] ?? ['przygotowanie'];
+
+        // Jeśli krok nie ma przypisanych typów kroków (jak cooling, packaging), sprawdź czy ma składniki
+        if (empty($recipeStepTypes)) {
+            session()->flash('info', 'Ten krok produkcji nie wymaga dodawania składników.');
+            return;
+        }
+
+        // Znajdź składniki dla danego kroku
+        $stepIngredients = collect();
+
+        // Pobierz składniki z odpowiednich kroków przepisu
+        foreach ($recipe->steps as $recipeStep) {
+            if (in_array($recipeStep->typ, $recipeStepTypes)) {
+                foreach ($recipeStep->materials as $material) {
+                    $stepIngredients->push([
+                            'material' => $material,
+                            'recipe_amount' => $material->pivot->ilosc,
+                            'unit' => $material->pivot->jednostka,
+                            'step_name' => $recipeStep->nazwa,
+                            'step_type' => $recipeStep->typ,
+                        ]);
+                    }
+                }
+            }
+
+        // Jeśli nie znaleziono składników dla tego kroku, znaczy że nie wymaga składników
+        if ($stepIngredients->isEmpty()) {
+            session()->flash('info', 'Ten krok produkcji nie wymaga dodawania składników.');
+            return;
+        }
+
+        // Przelicz składniki na całkowitą ilość
+        $recipePortion = $recipe->ilosc_porcji ?: 1;
+        $scalingFactor = $totalQuantityInStep / $recipePortion;
+
+        $stepIngredients = $stepIngredients->map(function ($ingredient) use ($scalingFactor) {
+            $ingredient['total_amount'] = $ingredient['recipe_amount'] * $scalingFactor;
+            $ingredient['scaling_factor'] = $scalingFactor;
+            return $ingredient;
+        });
+
+        $this->stepIngredientsData = [
+            'product' => $product,
+            'step' => $step,
+            'step_label' => $this->getStepLabel($step),
+            'step_description' => $this->getStepDescription($step),
+            'total_quantity' => $totalQuantityInStep,
+            'ingredients' => $stepIngredients,
+        ];
+
+        $this->showStepIngredientsModal = true;
+    }
+
+    public function closeStepIngredients()
+    {
+        $this->showStepIngredientsModal = false;
+        $this->stepIngredientsData = [];
+    }
+
+    private function getStepLabel($step)
+    {
+        $labels = [
+            'waiting' => 'Oczekuje',
+            'preparing' => 'Przygotowanie składników',
+            'mixing' => 'Mieszanie',
+            'first_rise' => 'Pierwsze wyrastanie',
+            'shaping' => 'Formowanie',
+            'second_rise' => 'Drugie wyrastanie',
+            'baking' => 'Pieczenie',
+            'cooling' => 'Studzenie',
+            'packaging' => 'Pakowanie',
+            'completed' => 'Zakończone',
+        ];
+
+        return $labels[$step] ?? ucfirst($step);
+    }
+
+    private function getStepDescription($step)
+    {
+        $descriptions = [
+            'waiting' => 'Produkt oczekuje na rozpoczęcie produkcji. Sprawdź dostępność składników i przygotuj stanowisko pracy.',
+            'preparing' => 'Przygotuj wszystkie składniki zgodnie z recepturą. Zważ dokładnie każdy składnik i ustaw w odpowiedniej kolejności.',
+            'mixing' => 'Wymieszaj składniki zgodnie z instrukcją. Zwróć uwagę na kolejność dodawania i czas mieszania.',
+            'first_rise' => 'Ciasto wyrasta po raz pierwszy. Utrzymuj odpowiednią temperaturę i wilgotność. Nie przeszkadzaj w procesie.',
+            'shaping' => 'Formuj ciasto w pożądane kształty. Pracuj delikatnie, aby nie uszkodzić struktury ciasta.',
+            'second_rise' => 'Drugie wyrastanie - ostateczne podnoszenie przed pieczeniem. Sprawdź czy ciasto jest gotowe do pieca.',
+            'baking' => 'Piecz w odpowiedniej temperaturze. Monitoruj proces i sprawdzaj gotowość. Nie otwieraj piekarnika zbyt często.',
+            'cooling' => 'Ostudź wypieczone produkty na kratce. Nie pakuj zanim nie ostygną całkowicie.',
+            'packaging' => 'Zapakuj gotowe produkty zgodnie ze standardami. Sprawdź jakość przed pakowaniem.',
+            'completed' => 'Produkt został ukończony i jest gotowy do sprzedaży lub dostawy.',
+        ];
+
+        return $descriptions[$step] ?? 'Wykonaj czynności związane z tym etapem produkcji.';
     }
 
     public function render()

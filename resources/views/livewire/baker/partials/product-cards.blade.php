@@ -38,12 +38,39 @@
                             @php
                                 $firstItem = collect($productCard['items'])->first();
                             @endphp
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-{{ $firstItem->step_color }}-100 text-{{ $firstItem->step_color }}-800">
+                            {{-- Nazwa procesu (tylko wyświetlanie) --}}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                                @if($firstItem->step_color == 'blue') bg-blue-100 text-blue-800
+                                @elseif($firstItem->step_color == 'yellow') bg-yellow-100 text-yellow-800
+                                @elseif($firstItem->step_color == 'green') bg-green-100 text-green-800
+                                @elseif($firstItem->step_color == 'red') bg-red-100 text-red-800
+                                @elseif($firstItem->step_color == 'purple') bg-purple-100 text-purple-800
+                                @elseif($firstItem->step_color == 'orange') bg-orange-100 text-orange-800
+                                @elseif($firstItem->step_color == 'indigo') bg-indigo-100 text-indigo-800
+                                @else bg-gray-100 text-gray-800
+                                @endif">
                                 {{ $firstItem->current_step_label }}
                             </span>
                         </div>
 
                             <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2">
+                                {{-- Przycisk do przejścia wszystkich na kolejny krok --}}
+                                @if($productCard['dominant_step'] !== 'completed')
+                                    <div class="relative group">
+                                        <button wire:click="moveAllToNextStep({{ $productCard['product']->id }})"
+                                                class="flex items-center justify-center md:justify-start space-x-2 w-full md:w-auto px-4 py-3 md:p-2 text-green-600 hover:bg-green-50 active:bg-green-100 rounded-lg transition-colors touch-manipulation">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                                            </svg>
+                                            <span class="md:hidden text-sm font-medium">Wszystkie dalej</span>
+                                        </button>
+                                        <div class="hidden md:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 whitespace-nowrap">
+                                            ⏭️ Przenieś wszystkie na kolejny krok
+                                            <div class="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                                        </div>
+                                    </div>
+                                @endif
+
                                 {{-- Przycisk przepisu - tylko jeśli produkt ma przepis --}}
                                 @if($productCard['product']->recipes && $productCard['product']->recipes->count() > 0)
                                     <div class="relative group">
@@ -115,15 +142,29 @@
                     <div class="space-y-3">
                         @foreach($productCard['step_groups'] as $stepGroup)
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-3">
+                                {{-- Klikalna sekcja z informacjami o kroku --}}
+                                <button wire:click="showStepIngredients({{ $productCard['product']->id }}, '{{ $stepGroup['step'] }}')"
+                                        class="flex items-center space-x-3 flex-1 text-left hover:bg-gray-100 rounded p-2 transition-colors">
                                     @php
                                         $stepItem = collect($stepGroup['items'])->first();
                                     @endphp
-                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-{{ $stepItem->step_color }}-100 text-{{ $stepItem->step_color }}-800">
+                                    <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium
+                                        @if($stepItem->step_color == 'blue') bg-blue-100 text-blue-800
+                                        @elseif($stepItem->step_color == 'yellow') bg-yellow-100 text-yellow-800
+                                        @elseif($stepItem->step_color == 'green') bg-green-100 text-green-800
+                                        @elseif($stepItem->step_color == 'red') bg-red-100 text-red-800
+                                        @elseif($stepItem->step_color == 'purple') bg-purple-100 text-purple-800
+                                        @elseif($stepItem->step_color == 'orange') bg-orange-100 text-orange-800
+                                        @elseif($stepItem->step_color == 'indigo') bg-indigo-100 text-indigo-800
+                                        @else bg-gray-100 text-gray-800
+                                        @endif">
                                         {{ $stepItem->current_step_label }}
                                     </span>
-                                    <span class="text-sm text-gray-600">{{ $stepGroup['quantity'] }} szt</span>
-                                </div>
+                                    <span class="text-sm text-gray-600 font-medium">{{ $stepGroup['quantity'] }} szt</span>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                    </svg>
+                                </button>
 
                                 <div class="flex flex-wrap gap-3 md:gap-2">
                                     @foreach($stepGroup['items'] as $item)
