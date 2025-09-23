@@ -84,6 +84,11 @@ Route::middleware(['auth'])->group(function () {
         return view('admin.impersonate');
     })->name('admin.impersonate');
 
+    // Test upload zdjęć
+    Route::get('/test-image-upload', function () {
+        return view('test-image-upload');
+    })->name('test.image.upload');
+
     // Trasy dla kontrahentów
     Route::prefix('contractors')->name('contractors.')->group(function () {
         Route::get('/', function () {

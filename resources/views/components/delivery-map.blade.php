@@ -106,3 +106,4 @@ function updateDeliveryCoordinates(deliveryId, lat, lng) {
 }
 </script>
 @endpush
+

@@ -32,7 +32,7 @@ class ProductImage extends Model
 
     public function getUrlAttribute(): string
     {
-        return Storage::url('products/' . $this->filename);
+        return asset('storage/products/' . $this->filename);
     }
 
     public function getFullPathAttribute(): string

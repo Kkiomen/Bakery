@@ -1,2 +1,6 @@
 *
 !.gitignore
+!products/
+!products/.gitkeep
+products/*
+!products/.gitkeep

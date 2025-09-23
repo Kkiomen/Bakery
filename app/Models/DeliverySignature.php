@@ -100,3 +100,4 @@ class DeliverySignature extends Model
         return $query->whereDate('signature_date', $date);
     }
 }
+

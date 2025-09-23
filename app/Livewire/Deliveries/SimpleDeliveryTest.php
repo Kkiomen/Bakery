@@ -26,3 +26,4 @@ class SimpleDeliveryTest extends Component
         return view('livewire.deliveries.simple-delivery-test');
     }
 }
+

@@ -3,14 +3,21 @@
 namespace App\Livewire\Products;
 
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Category;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\Attributes\Validate;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ProductForm extends Component
 {
+    use WithFileUploads;
+
     public ?Product $product = null;
     public bool $isEditing = false;
 
@@ -56,6 +63,11 @@ class ProductForm extends Component
     public $wagaKgDisplay = '';
     public $cenaNettoDisplay = '';
 
+    // Zdjęcia
+    public $photos = [];
+    public $existingImages = [];
+    public $imagesToDelete = [];
+
     protected $rules = [
         'sku' => 'required|string|max:255',
         'ean' => 'nullable|string|min:8|max:14',
@@ -76,6 +88,7 @@ class ProductForm extends Component
         'aktywny' => 'boolean',
         'meta_title' => 'nullable|string|max:255',
         'meta_description' => 'nullable|string|max:500',
+        'photos.*' => 'nullable|image|max:5120', // max 5MB
     ];
 
     public function mount(?Product $product = null)
@@ -94,12 +107,14 @@ class ProductForm extends Component
             }
 
             $this->alergeny = $product->alergeny ?? [];
+            $this->existingImages = $product->images;
             $this->updateCalculatedFields();
         } else {
             // Nowy produkt - ustaw domyślne wartości
             $this->product = new Product();
             $this->isEditing = false;
             $this->alergeny = [];
+            $this->existingImages = collect();
         }
     }
 
@@ -133,8 +148,47 @@ class ProductForm extends Component
         }
     }
 
+    public function removePhoto($index)
+    {
+        if (isset($this->photos[$index])) {
+            unset($this->photos[$index]);
+            $this->photos = array_values($this->photos);
+        }
+    }
+
+    public function markImageForDeletion($imageId)
+    {
+        if (!in_array($imageId, $this->imagesToDelete)) {
+            $this->imagesToDelete[] = $imageId;
+        }
+    }
+
+    public function unmarkImageForDeletion($imageId)
+    {
+        $this->imagesToDelete = array_filter($this->imagesToDelete, function($id) use ($imageId) {
+            return $id !== $imageId;
+        });
+    }
+
+    public function setPrimaryImage($imageId)
+    {
+        // Usuń primary z wszystkich istniejących zdjęć
+        ProductImage::where('product_id', $this->product->id)
+            ->update(['is_primary' => false]);
+
+        // Ustaw nowe jako primary
+        ProductImage::where('id', $imageId)
+            ->update(['is_primary' => true]);
+
+        // Odśwież dane
+        $this->existingImages = $this->product->fresh()->images;
+
+        session()->flash('success', 'Zdjęcie główne zostało zmienione.');
+    }
+
     public function save()
     {
+
         // Przygotuj dane do walidacji
         $data = [
             'sku' => $this->sku,
@@ -171,6 +225,9 @@ class ProductForm extends Component
                 $message = 'Produkt został utworzony';
             }
 
+            // Obsługa zdjęć
+            $this->handleImages();
+
             $this->dispatch('product-saved', [
                 'message' => $message,
                 'product' => $this->product->id
@@ -181,8 +238,64 @@ class ProductForm extends Component
             }
 
         } catch (\Exception $e) {
-            $this->dispatch('product-error', 'Wystąpił błąd podczas zapisywania produktu');
+            $this->dispatch('product-error', 'Wystąpił błąd podczas zapisywania produktu: ' . $e->getMessage());
         }
+    }
+
+    private function handleImages()
+    {
+
+        // Usuń oznaczone zdjęcia
+        if (!empty($this->imagesToDelete)) {
+            $imagesToDelete = ProductImage::whereIn('id', $this->imagesToDelete)->get();
+
+            foreach ($imagesToDelete as $image) {
+                // Usuń plik z dysku
+                Storage::disk('public')->delete('products/' . $image->filename);
+                // Usuń z bazy danych
+                $image->delete();
+            }
+        }
+
+        // Dodaj nowe zdjęcia
+        if (!empty($this->photos) && $this->product && $this->product->id) {
+            $sortOrder = ProductImage::where('product_id', $this->product->id)->max('sort_order') ?? 0;
+            $isFirstImage = ProductImage::where('product_id', $this->product->id)->count() === 0;
+
+
+            foreach ($this->photos as $index => $photo) {
+                try {
+                    $filename = Str::uuid() . '.' . $photo->getClientOriginalExtension();
+                    $storedPath = $photo->storeAs('products', $filename, 'public');
+
+                    if ($storedPath) {
+                        $imageData = [
+                            'product_id' => $this->product->id,
+                            'filename' => $filename,
+                            'original_name' => $photo->getClientOriginalName(),
+                            'mime_type' => $photo->getMimeType(),
+                            'size' => $photo->getSize(),
+                            'alt_text' => $this->nazwa,
+                            'sort_order' => $sortOrder + $index + 1,
+                            'is_primary' => $isFirstImage && $index === 0,
+                        ];
+
+                        ProductImage::create($imageData);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Błąd podczas zapisywania zdjęcia produktu: ' . $e->getMessage());
+                }
+            }
+        }
+
+        // Odśwież dane
+        if ($this->isEditing) {
+            $this->existingImages = $this->product->fresh()->images;
+        }
+
+        // Wyczyść tymczasowe dane
+        $this->photos = [];
+        $this->imagesToDelete = [];
     }
 
     public function cancel()

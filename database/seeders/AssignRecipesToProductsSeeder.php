@@ -51,3 +51,4 @@ class AssignRecipesToProductsSeeder extends Seeder
         }
     }
 }
+

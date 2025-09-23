@@ -109,6 +109,129 @@
             </div>
         </div>
 
+        {{-- Zdjęcia produktu --}}
+        <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Zdjęcia produktu</h2>
+
+
+            {{-- Upload nowych zdjęć --}}
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Dodaj nowe zdjęcia
+                </label>
+                <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <input type="file"
+                           wire:model="photos"
+                           multiple
+                           accept="image/*"
+                           class="hidden"
+                           id="photo-upload">
+                    <label for="photo-upload" class="cursor-pointer">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div class="mt-4">
+                            <p class="text-sm text-gray-600">
+                                <span class="font-medium text-blue-600 hover:text-blue-500">Kliknij aby wybrać pliki</span>
+                                lub przeciągnij i upuść
+                            </p>
+                            <p class="text-xs text-gray-500 mt-1">PNG, JPG, JPEG do 5MB</p>
+                        </div>
+                    </label>
+                </div>
+                @error('photos.*')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Podgląd nowych zdjęć --}}
+            @if(!empty($photos))
+                <div class="mb-6">
+                    <h3 class="text-sm font-medium text-gray-900 mb-3">Nowe zdjęcia do dodania:</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        @foreach($photos as $index => $photo)
+                            <div class="relative group">
+                                <img src="{{ $photo->temporaryUrl() }}"
+                                     alt="Podgląd zdjęcia"
+                                     class="w-full h-32 object-cover rounded-lg border">
+                                <button type="button"
+                                        wire:click="removePhoto({{ $index }})"
+                                        class="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+
+            {{-- Istniejące zdjęcia --}}
+            @if($existingImages && $existingImages->count() > 0)
+                <div>
+                    <h3 class="text-sm font-medium text-gray-900 mb-3">Obecne zdjęcia:</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        @foreach($existingImages as $image)
+                            <div class="relative group">
+                                <img src="{{ $image->url }}"
+                                     alt="{{ $image->alt_text }}"
+                                     class="w-full h-32 object-cover rounded-lg border {{ in_array($image->id, $imagesToDelete) ? 'opacity-50' : '' }}">
+
+                                {{-- Badge dla zdjęcia głównego --}}
+                                @if($image->is_primary)
+                                    <span class="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
+                                        Główne
+                                    </span>
+                                @endif
+
+                                {{-- Akcje --}}
+                                <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center space-x-2">
+                                    @if(!$image->is_primary && !in_array($image->id, $imagesToDelete))
+                                        <button type="button"
+                                                wire:click="setPrimaryImage({{ $image->id }})"
+                                                class="bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700"
+                                                title="Ustaw jako główne">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
+                                            </svg>
+                                        </button>
+                                    @endif
+
+                                    @if(in_array($image->id, $imagesToDelete))
+                                        <button type="button"
+                                                wire:click="unmarkImageForDeletion({{ $image->id }})"
+                                                class="bg-green-600 text-white p-2 rounded-full hover:bg-green-700"
+                                                title="Anuluj usunięcie">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                        </button>
+                                    @else
+                                        <button type="button"
+                                                wire:click="markImageForDeletion({{ $image->id }})"
+                                                class="bg-red-600 text-white p-2 rounded-full hover:bg-red-700"
+                                                title="Oznacz do usunięcia">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    @endif
+                                </div>
+
+                                {{-- Overlay dla oznaczonych do usunięcia --}}
+                                @if(in_array($image->id, $imagesToDelete))
+                                    <div class="absolute inset-0 bg-red-600 bg-opacity-75 rounded-lg flex items-center justify-center">
+                                        <span class="text-white font-medium text-sm">Do usunięcia</span>
+                                    </div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </div>
+
         {{-- Waga i jednostki --}}
         <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-medium text-gray-900 mb-4">Waga i jednostki</h2>

@@ -128,3 +128,4 @@ class DeliveryPhoto extends Model
         return $query->where('typ_zdjecia', 'problem');
     }
 }
+

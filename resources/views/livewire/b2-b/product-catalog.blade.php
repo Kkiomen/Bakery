@@ -77,13 +77,21 @@
                 <div class="bg-white shadow rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
                     <!-- Zdjęcie produktu -->
                     <div class="aspect-w-16 aspect-h-9 bg-gray-200">
-                        @if($product->images->count() > 0)
-                            <img src="{{ Storage::url($product->images->first()->sciezka) }}"
-                                 alt="{{ $product->nazwa }}"
-                                 class="w-full h-48 object-cover">
+                        @php
+                            $primaryImage = $product->images->where('is_primary', true)->first() ?? $product->images->first();
+                        @endphp
+                        @if($primaryImage)
+                            <img src="{{ $primaryImage->url }}"
+                                 alt="{{ $primaryImage->alt_text ?? $product->nazwa }}"
+                                 class="w-full h-48 object-cover transition-transform duration-300 hover:scale-105">
                         @else
-                            <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                                <span class="text-gray-400 text-4xl">🍞</span>
+                            <div class="w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                                <div class="text-center">
+                                    <svg class="mx-auto h-16 w-16 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <p class="text-sm text-gray-500">Brak zdjęcia</p>
+                                </div>
                             </div>
                         @endif
                     </div>
@@ -128,7 +136,8 @@
                             <!-- Dodaj do koszyka -->
                             <div class="space-y-2">
                                 <!-- Szybkie dodawanie 1 sztuki -->
-                                <button onclick="quickAddToCart({{ $product->id }}, this)"
+                                <button data-product-id="{{ $product->id }}"
+                                        onclick="quickAddToCart(this.dataset.productId, this)"
                                         class="w-full bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition-colors font-medium">
                                     ⚡ Szybko dodaj (1 szt)
                                 </button>
@@ -358,11 +367,6 @@
 
     <!-- Toast powiadomienia -->
     <div x-data="{ show: false, message: '' }"
-         @product-added-to-cart.window="
-            message = 'Dodano: ' + $event.detail.productName + ' (' + $event.detail.quantity + ' szt.)';
-            show = true;
-            setTimeout(() => show = false, 3000);
-         "
          x-show="show"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0 transform translate-y-2"
@@ -379,9 +383,31 @@
 
     <!-- Script dla smooth scroll i lepszego UX -->
     <script>
+        let toastElement = null;
+
         // Smooth scroll do góry po kliknięciu w koszyk
         document.addEventListener('livewire:initialized', () => {
+            toastElement = document.querySelector('[x-data*="show: false"]');
+
             Livewire.on('product-added-to-cart', (event) => {
+                console.log('Livewire event received:', event);
+
+                // Pobierz dane z eventu
+                const data = Array.isArray(event) ? event[0] : event;
+                const productName = data?.productName || 'Produkt';
+                const quantity = data?.quantity || '1';
+
+                // Pokaż toast
+                if (toastElement && toastElement._x_dataStack) {
+                    toastElement._x_dataStack[0].message = `Dodano: ${productName} (${quantity} szt.)`;
+                    toastElement._x_dataStack[0].show = true;
+                    setTimeout(() => {
+                        if (toastElement._x_dataStack) {
+                            toastElement._x_dataStack[0].show = false;
+                        }
+                    }, 3000);
+                }
+
                 // Animacja pulsowania przycisku koszyka
                 const cartButtons = document.querySelectorAll('[wire\\:click="toggleCart"]');
                 cartButtons.forEach(button => {
@@ -400,14 +426,25 @@
             buttonElement.innerHTML = '⏳ Dodawanie...';
             buttonElement.disabled = true;
 
-            // Wywołaj Livewire
-            @this.call('addToCart', productId, 1).then(() => {
-                buttonElement.innerHTML = '✅ Dodano!';
-                setTimeout(() => {
-                    buttonElement.innerHTML = originalText;
-                    buttonElement.disabled = false;
-                }, 1500);
-            });
+            // Wywołaj Livewire metodą wire:click
+            const wireClick = buttonElement.closest('[wire\\:id]');
+            if (wireClick && window.Livewire) {
+                const componentId = wireClick.getAttribute('wire:id');
+                const component = window.Livewire.find(componentId);
+                if (component) {
+                    component.call('addToCart', parseInt(productId), 1).then(() => {
+                        buttonElement.innerHTML = '✅ Dodano!';
+                        setTimeout(() => {
+                            buttonElement.innerHTML = originalText;
+                            buttonElement.disabled = false;
+                        }, 1500);
+                    }).catch((error) => {
+                        console.error('Error adding to cart:', error);
+                        buttonElement.innerHTML = originalText;
+                        buttonElement.disabled = false;
+                    });
+                }
+            }
         }
     </script>
 </div>

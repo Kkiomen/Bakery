@@ -21,7 +21,7 @@
     <div class="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
         <p class="opacity-90">Pn–Pt 6:30–18:00 · Sb 7:00–14:00 · Nd zamknięte</p>
         <div class="flex items-center gap-4">
-            <a href="#b2b" class="underline decoration-dashed underline-offset-4 hover:opacity-90">B2B – zamów online</a>
+            <a href="{{ asset('/b2b/login') }}" class="underline decoration-dashed underline-offset-4 hover:opacity-90">B2B – zamów online</a>
             <a href="#kontakt" class="hover:opacity-90">Kontakt</a>
         </div>
     </div>
@@ -211,7 +211,7 @@
                 </ul>
             </div>
         </div>
-        
+
         <!-- Dane testowe -->
         <div class="border-t border-white/10 bg-white/5">
             <div class="max-w-7xl mx-auto px-4 py-6">
@@ -224,7 +224,7 @@
                         <p class="mb-3"><strong>Hasło:</strong> <code class="bg-white/20 px-2 py-1 rounded">admin123</code></p>
                         <p class="text-xs opacity-80">Dostęp do zarządzania produkcją, klientami B2B, dostawami</p>
                     </div>
-                    
+
                     <div class="bg-white/10 rounded-lg p-4">
                         <h4 class="font-semibold mb-3">🏢 Portal B2B (przykładowe konto)</h4>
                         <p class="mb-2"><strong>URL:</strong> <a href="/b2b/login" class="text-yellow-300 hover:underline">/b2b/login</a></p>
@@ -233,7 +233,7 @@
                         <p class="text-xs opacity-80">Hotel Grand Palace - poziom Złoty, zamówienia cykliczne</p>
                     </div>
                 </div>
-                
+
                 <div class="mt-6 p-4 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
                     <h4 class="font-semibold mb-2">🎭 Funkcja przełączania dla administratora</h4>
                     <p class="text-sm">Po zalogowaniu jako administrator, wejdź na <a href="/admin/impersonate" class="text-yellow-300 hover:underline">/admin/impersonate</a> aby przełączyć się na dowolne konto B2B i testować system z perspektywy klienta.</p>

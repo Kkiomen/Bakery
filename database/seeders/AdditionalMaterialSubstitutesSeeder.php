@@ -199,3 +199,4 @@ class AdditionalMaterialSubstitutesSeeder extends Seeder
         }
     }
 }
+

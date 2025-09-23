@@ -314,3 +314,4 @@ class AllProductsRecipesSeeder extends Seeder
         echo "\nRazem: {$productsWithRecipes}/{$totalProducts} produktów ma przepisy\n";
     }
 }
+

@@ -25,3 +25,4 @@ class SimpleTest extends Component
         return view('livewire.test.simple-test');
     }
 }
+
