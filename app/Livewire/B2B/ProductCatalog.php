@@ -8,6 +8,7 @@ use App\Models\B2BPricing;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ProductCatalog extends Component
 {
@@ -52,6 +53,17 @@ class ProductCatalog extends Component
             return;
         }
 
+        // Debug: loguj informacje o cenniku
+        Log::info('B2B Pricing for product', [
+            'product_id' => $productId,
+            'product_name' => $product->nazwa,
+            'quantity' => $quantity,
+            'client_tier' => $client->pricing_tier,
+            'price_net' => $pricing->price_net,
+            'discount_percent' => $pricing->discount_percent,
+            'pricing_id' => $pricing->id
+        ]);
+
         $cartKey = $productId;
 
         if (isset($this->cart[$cartKey])) {
@@ -64,7 +76,7 @@ class ProductCatalog extends Component
                 'unit_price' => $pricing->price_net,
                 'unit_price_gross' => $pricing->price_gross,
                 'tax_rate' => $pricing->tax_rate,
-                'discount_percent' => $pricing->discount_percent,
+                'discount_percent' => $pricing->discount_percent ?? 0,
             ];
         }
 
@@ -132,7 +144,7 @@ class ProductCatalog extends Component
         if ($pricing) {
             $item['unit_price'] = $pricing->price_net;
             $item['unit_price_gross'] = $pricing->price_gross;
-            $item['discount_percent'] = $pricing->discount_percent;
+            $item['discount_percent'] = $pricing->discount_percent ?? 0;
         }
 
         $item['line_total'] = $quantity * $item['unit_price'];

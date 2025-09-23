@@ -11,7 +11,7 @@
     <div class="container mx-auto py-8">
         <div class="max-w-2xl mx-auto">
             <h1 class="text-2xl font-bold mb-6">Test Upload Zdjęć Produktów</h1>
-            
+
             <div class="bg-white shadow rounded-lg p-6">
                 @if(auth()->check())
                     @livewire('products.product-form')

@@ -304,7 +304,7 @@
                                         <h4 class="font-medium text-gray-900">{{ $item['product_name'] }}</h4>
                                         <p class="text-sm text-gray-600">
                                             {{ number_format($item['unit_price'], 2) }} zł/szt
-                                            @if($item['discount_percent'] > 0)
+                                            @if(isset($item['discount_percent']) && $item['discount_percent'] > 0)
                                                 <span class="text-red-600">(-{{ $item['discount_percent'] }}% rabat)</span>
                                             @endif
                                         </p>
@@ -336,7 +336,7 @@
                             @php
                                 $totalSavings = 0;
                                 foreach($cart as $item) {
-                                    if(isset($item['discount_percent']) && $item['discount_percent'] > 0) {
+                                    if(isset($item['discount_percent']) && is_numeric($item['discount_percent']) && $item['discount_percent'] > 0) {
                                         $originalPrice = $item['unit_price'] / (1 - $item['discount_percent'] / 100);
                                         $savings = ($originalPrice - $item['unit_price']) * $item['quantity'];
                                         $totalSavings += $savings;
