@@ -679,6 +679,12 @@ class RecipeForm extends Component
     }
 
     // Obliczanie kosztów receptury
+    public function getBestSavings()
+    {
+        $costAnalysis = $this->getCostAnalysis();
+        return collect($costAnalysis['substitute_savings'])->where('savings', '>', 0);
+    }
+
     public function getCostAnalysis()
     {
         $allMaterials = $this->getAllMaterials();
@@ -804,6 +810,11 @@ class RecipeForm extends Component
                 'material_costs' => [],
                 'substitute_savings' => []
             ];
+        }
+
+        // Upewnij się, że $allMaterials jest zawsze kolekcją
+        if (!$allMaterials instanceof \Illuminate\Support\Collection) {
+            $allMaterials = collect($allMaterials);
         }
 
         return view('livewire.recipes.recipe-form', [

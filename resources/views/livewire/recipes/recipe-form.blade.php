@@ -338,7 +338,7 @@
                                                                 <div class="flex items-start justify-between text-xs">
                                                                     <div class="flex-1">
                                                                         <div class="flex items-center space-x-2">
-                                                                            <span class="font-medium text-gray-900">{{ $material['material_name'] }}</span>
+                                                                            <span class="font-medium text-gray-900">{{ $material['material_name'] ?? '' }}</span>
                                                                             <span class="text-blue-600 font-semibold">{{ $material['amount'] }} {{ $material['unit'] }}</span>
                                                                             @if($material['preparation'])
                                                                                 <span class="text-gray-500">({{ $material['preparation'] }})</span>
@@ -358,7 +358,7 @@
                                                                             <div class="mt-1 pl-2 border-l-2 border-green-200">
                                                                                 @foreach($material['substitutes'] as $substitute)
                                                                                     <div class="text-xs text-green-700">
-                                                                                        <span class="font-medium">{{ $substitute['material_name'] }}</span>
+                                                                                        <span class="font-medium">{{ $substitute['material_name'] ?? '' }}</span>
                                                                                         <span class="text-green-600">({{ $substitute['wspolczynnik_przeliczenia'] }}x)</span>
                                                                                         @if($substitute['uwagi'])
                                                                                             <span class="text-gray-500">- {{ $substitute['uwagi'] }}</span>
@@ -462,7 +462,7 @@
                     </div>
                 </div>
 
-                @if($allMaterials->count() > 0)
+                @if($allMaterials && $allMaterials->count() > 0)
                     <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
                         <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
                             <h4 class="text-sm font-medium text-gray-900">Lista zakupów</h4>
@@ -473,7 +473,7 @@
                                               <div class="flex items-start justify-between">
                                                   <div class="flex-1">
                                                       <div class="flex items-center space-x-3">
-                                                          <h5 class="text-sm font-medium text-gray-900">{{ $material['material_name'] }}</h5>
+                                                          <h5 class="text-sm font-medium text-gray-900">{{ $material['material_name'] ?? '' }}</h5>
                                                           <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                                               Łącznie: {{ $material['total_amount'] }} {{ $material['unit'] }}
                                                           </span>
@@ -490,7 +490,7 @@
                                                               <h6 class="text-xs font-medium text-green-800 mb-1">Dostępne zamienniki:</h6>
                                                               @foreach($material['substitutes'] as $substitute)
                                                                   <div class="text-xs text-green-700 mb-1">
-                                                                      <span class="font-medium">{{ $substitute['material_name'] }}</span>
+                                                                      <span class="font-medium">{{ $substitute['material_name'] ?? '' }}</span>
                                                                       <span class="text-green-600">({{ $substitute['wspolczynnik_przeliczenia'] }}x)</span>
                                                                       @if($substitute['uwagi'])
                                                                           <span class="text-gray-500">- {{ $substitute['uwagi'] }}</span>
@@ -678,7 +678,7 @@
                                       @foreach($costAnalysis['material_costs'] as $cost)
                                           <tr>
                                               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                  {{ $cost['material_name'] }}
+                                                  {{ $cost['material_name'] ?? '' }}
                                               </td>
                                               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                   {{ $cost['amount'] }} {{ $cost['unit'] }}
@@ -765,11 +765,7 @@
                           </div>
 
                           {{-- Podsumowanie oszczędności --}}
-                          @php
-                              $totalSavings = collect($costAnalysis['substitute_savings'])->sum('savings');
-                              $bestSavings = collect($costAnalysis['substitute_savings'])->where('savings', '>', 0);
-                          @endphp
-                          @if($bestSavings->count() > 0)
+                          @if(count($costAnalysis['substitute_savings']) > 0 && collect($costAnalysis['substitute_savings'])->where('savings', '>', 0)->count() > 0)
                               <div class="px-4 py-3 bg-green-100 border-t border-green-200">
                                   <div class="flex items-center justify-between">
                                       <div>
@@ -778,10 +774,10 @@
                                       </div>
                                       <div class="text-right">
                                           <div class="text-lg font-bold text-green-900">
-                                              -{{ number_format($bestSavings->sum('savings'), 2) }} zł
+                                              -{{ number_format(collect($costAnalysis['substitute_savings'])->where('savings', '>', 0)->sum('savings'), 2) }} zł
                                           </div>
                                           <div class="text-sm text-green-700">
-                                              ({{ number_format(($bestSavings->sum('savings') / $costAnalysis['total_cost']) * 100, 1) }}% całości)
+                                              ({{ number_format((collect($costAnalysis['substitute_savings'])->where('savings', '>', 0)->sum('savings') / $costAnalysis['total_cost']) * 100, 1) }}% całości)
                                           </div>
                                       </div>
                                   </div>
@@ -1170,7 +1166,7 @@
                                         <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                                             <div class="flex-1">
                                                 <div class="flex items-center space-x-2">
-                                                    <span class="font-medium text-gray-900">{{ $substitute['material_name'] }}</span>
+                                                    <span class="font-medium text-gray-900">{{ $substitute['material_name'] ?? '' }}</span>
                                                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                                                         Współczynnik: {{ $substitute['wspolczynnik_przeliczenia'] }}x
                                                     </span>
@@ -1203,14 +1199,10 @@
                                         Materiał zamiennik <span class="text-red-500">*</span>
                                     </label>
                                     @if($this->getCurrentMaterialIdForSubstitute())
-                                        @php
-                                            $currentMaterialId = $this->getCurrentMaterialIdForSubstitute();
-                                            $availableSubstitutes = $this->getAvailableSubstitutesForMaterial($currentMaterialId);
-                                        @endphp
                                         <select wire:model.live="selectedSubstituteMaterialId"
                                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('selectedSubstituteMaterialId') border-red-500 @enderror">
                                             <option value="">Wybierz zamiennik</option>
-                                            @foreach($availableSubstitutes as $substitute)
+                                            @foreach($this->getAvailableSubstitutesForMaterial($this->getCurrentMaterialIdForSubstitute()) as $substitute)
                                                 <option value="{{ $substitute->id }}">
                                                     {{ $substitute->nazwa }} ({{ $substitute->jednostka_podstawowa }})
                                                 </option>
