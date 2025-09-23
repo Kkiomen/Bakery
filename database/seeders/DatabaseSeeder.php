@@ -24,19 +24,34 @@ class DatabaseSeeder extends Seeder
 
         // Wyczyść tabele w odpowiedniej kolejności
         $tables = [
+            'notifications',
+            'jobs',
+            'failed_jobs',
+            'cache',
+            'cache_locks',
+            'sessions',
+            'b2_b_order_items',
+            'b2_b_orders',
+            'recurring_orders',
             'b2_b_pricings',
             'b2_b_clients',
+            'delivery_signatures',
+            'delivery_photos',
+            'delivery_items',
+            'deliveries',
             'production_order_items',
             'production_orders',
+            'recipe_step_materials',
+            'recipe_steps',
             'recipe_materials',
             'recipes',
             'material_substitutes',
             'materials',
+            'product_substitutes',
             'product_images',
             'products',
             'categories',
             'contractors',
-            'deliveries',
             'users'
         ];
 
