@@ -5,6 +5,7 @@ namespace App\Livewire\Products;
 use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\Category;
+use App\Models\B2BPricing;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use Livewire\Component;
@@ -68,6 +69,18 @@ class ProductForm extends Component
     public $existingImages = [];
     public $imagesToDelete = [];
 
+    // Ceny B2B
+    public $b2bPricings = [];
+    public $newB2BPricing = [
+        'pricing_tier' => 'standard',
+        'min_quantity' => 1,
+        'max_quantity' => null,
+        'price_net' => '',
+        'discount_percent' => 0,
+        'is_active' => true
+    ];
+    public $pricingsToDelete = [];
+
     protected $rules = [
         'sku' => 'required|string|max:255',
         'ean' => 'nullable|string|min:8|max:14',
@@ -108,6 +121,7 @@ class ProductForm extends Component
 
             $this->alergeny = $product->alergeny ?? [];
             $this->existingImages = $product->images;
+            $this->b2bPricings = $product->b2bPricings()->orderBy('pricing_tier')->orderBy('min_quantity')->get()->toArray();
             $this->updateCalculatedFields();
         } else {
             // Nowy produkt - ustaw domyślne wartości
@@ -186,6 +200,72 @@ class ProductForm extends Component
         session()->flash('success', 'Zdjęcie główne zostało zmienione.');
     }
 
+    public function addB2BPricing()
+    {
+        // Walidacja nowego cennika
+        $this->validate([
+            'newB2BPricing.pricing_tier' => 'required|in:standard,bronze,silver,gold,platinum',
+            'newB2BPricing.min_quantity' => 'required|integer|min:1',
+            'newB2BPricing.max_quantity' => 'nullable|integer|min:1',
+            'newB2BPricing.price_net' => 'required|numeric|min:0.01',
+            'newB2BPricing.discount_percent' => 'nullable|numeric|min:0|max:100',
+        ]);
+
+        if ($this->product && $this->product->id) {
+            // Oblicz cenę brutto
+            $taxRate = 23; // Możesz to pobrać z produktu
+            $priceGross = $this->newB2BPricing['price_net'] * (1 + $taxRate / 100);
+
+            B2BPricing::create([
+                'product_id' => $this->product->id,
+                'pricing_tier' => $this->newB2BPricing['pricing_tier'],
+                'min_quantity' => $this->newB2BPricing['min_quantity'],
+                'max_quantity' => $this->newB2BPricing['max_quantity'] ?: null,
+                'price_net' => $this->newB2BPricing['price_net'],
+                'price_gross' => $priceGross,
+                'tax_rate' => $taxRate,
+                'discount_percent' => $this->newB2BPricing['discount_percent'] ?? 0,
+                'is_active' => $this->newB2BPricing['is_active'] ?? true,
+            ]);
+
+            // Odśwież dane
+            $this->b2bPricings = $this->product->fresh()->b2bPricings()->orderBy('pricing_tier')->orderBy('min_quantity')->get()->toArray();
+
+            // Resetuj formularz
+            $this->newB2BPricing = [
+                'pricing_tier' => 'standard',
+                'min_quantity' => 1,
+                'max_quantity' => null,
+                'price_net' => '',
+                'discount_percent' => 0,
+                'is_active' => true
+            ];
+
+            session()->flash('success', 'Cennik B2B został dodany.');
+        }
+    }
+
+    public function removeB2BPricing($pricingId)
+    {
+        if (!in_array($pricingId, $this->pricingsToDelete)) {
+            $this->pricingsToDelete[] = $pricingId;
+        }
+    }
+
+    public function restoreB2BPricing($pricingId)
+    {
+        $this->pricingsToDelete = array_filter($this->pricingsToDelete, function($id) use ($pricingId) {
+            return $id !== $pricingId;
+        });
+    }
+
+    public function updateB2BPricingStatus($index, $status)
+    {
+        if (isset($this->b2bPricings[$index])) {
+            $this->b2bPricings[$index]['is_active'] = $status;
+        }
+    }
+
     public function save()
     {
 
@@ -227,6 +307,9 @@ class ProductForm extends Component
 
             // Obsługa zdjęć
             $this->handleImages();
+
+            // Obsługa cenników B2B
+            $this->handleB2BPricings();
 
             $this->dispatch('product-saved', [
                 'message' => $message,
@@ -296,6 +379,41 @@ class ProductForm extends Component
         // Wyczyść tymczasowe dane
         $this->photos = [];
         $this->imagesToDelete = [];
+    }
+
+    private function handleB2BPricings()
+    {
+        if (!$this->product || !$this->product->id) {
+            return;
+        }
+
+        // Usuń oznaczone cenniki
+        if (!empty($this->pricingsToDelete)) {
+            B2BPricing::whereIn('id', $this->pricingsToDelete)->delete();
+        }
+
+        // Zaktualizuj istniejące cenniki
+        foreach ($this->b2bPricings as $index => $pricing) {
+            if (isset($pricing['id'])) {
+                $existingPricing = B2BPricing::find($pricing['id']);
+                if ($existingPricing) {
+                    $existingPricing->update([
+                        'is_active' => $pricing['is_active'],
+                        'price_net' => $pricing['price_net'],
+                        'price_gross' => $pricing['price_net'] * (1 + ($pricing['tax_rate'] ?? 23) / 100),
+                        'discount_percent' => $pricing['discount_percent'] ?? 0,
+                    ]);
+                }
+            }
+        }
+
+        // Odśwież dane
+        if ($this->isEditing) {
+            $this->b2bPricings = $this->product->fresh()->b2bPricings()->orderBy('pricing_tier')->orderBy('min_quantity')->get()->toArray();
+        }
+
+        // Wyczyść tymczasowe dane
+        $this->pricingsToDelete = [];
     }
 
     public function cancel()

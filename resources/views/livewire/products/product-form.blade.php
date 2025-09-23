@@ -232,6 +232,143 @@
             @endif
         </div>
 
+        {{-- Ceny B2B i rabaty ilościowe --}}
+        <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Ceny B2B i rabaty ilościowe</h2>
+
+            {{-- Dodaj nowy cennik B2B --}}
+            @if($isEditing && $product && $product->id)
+                <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h3 class="text-md font-medium text-blue-900 mb-3">Dodaj nowy cennik</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Poziom cenowy</label>
+                            <select wire:model="newB2BPricing.pricing_tier" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                                <option value="standard">Standard</option>
+                                <option value="bronze">Bronze</option>
+                                <option value="silver">Silver</option>
+                                <option value="gold">Gold</option>
+                                <option value="platinum">Platinum</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Min. ilość</label>
+                            <input type="number" wire:model="newB2BPricing.min_quantity" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Max. ilość</label>
+                            <input type="number" wire:model="newB2BPricing.max_quantity" placeholder="Brak limitu" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cena netto (zł)</label>
+                            <input type="number" wire:model="newB2BPricing.price_net" step="0.01" min="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Rabat (%)</label>
+                            <input type="number" wire:model="newB2BPricing.discount_percent" step="0.01" min="0" max="100" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+
+                        <div class="flex items-end">
+                            <button type="button" wire:click="addB2BPricing" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                ➕ Dodaj
+                            </button>
+                        </div>
+                    </div>
+
+                    @error('newB2BPricing.pricing_tier') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    @error('newB2BPricing.min_quantity') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                    @error('newB2BPricing.price_net') <p class="mt-1 text-sm text-red-600">{{ $message }}</p> @enderror
+                </div>
+            @endif
+
+            {{-- Lista istniejących cenników --}}
+            @if(!empty($b2bPricings))
+                <div>
+                    <h3 class="text-md font-medium text-gray-900 mb-3">Obecne cenniki B2B</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Poziom</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ilość</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cena netto</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cena brutto</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rabat</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Akcje</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @foreach($b2bPricings as $index => $pricing)
+                                    <tr class="{{ in_array($pricing['id'], $pricingsToDelete) ? 'opacity-50 bg-red-50' : '' }}">
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                {{ $pricing['pricing_tier'] === 'platinum' ? 'bg-purple-100 text-purple-800' : '' }}
+                                                {{ $pricing['pricing_tier'] === 'gold' ? 'bg-yellow-100 text-yellow-800' : '' }}
+                                                {{ $pricing['pricing_tier'] === 'silver' ? 'bg-gray-100 text-gray-800' : '' }}
+                                                {{ $pricing['pricing_tier'] === 'bronze' ? 'bg-orange-100 text-orange-800' : '' }}
+                                                {{ $pricing['pricing_tier'] === 'standard' ? 'bg-blue-100 text-blue-800' : '' }}">
+                                                {{ ucfirst($pricing['pricing_tier']) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $pricing['min_quantity'] }}{{ $pricing['max_quantity'] ? ' - ' . $pricing['max_quantity'] : '+' }} szt
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ number_format($pricing['price_net'], 2) }} zł
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ number_format($pricing['price_gross'], 2) }} zł
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ $pricing['discount_percent'] }}%
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <label class="inline-flex items-center">
+                                                <input type="checkbox"
+                                                       wire:change="updateB2BPricingStatus({{ $index }}, $event.target.checked)"
+                                                       {{ $pricing['is_active'] ? 'checked' : '' }}
+                                                       class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                                <span class="ml-2 text-sm text-gray-600">Aktywny</span>
+                                            </label>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            @if(in_array($pricing['id'], $pricingsToDelete))
+                                                <button type="button"
+                                                        wire:click="restoreB2BPricing({{ $pricing['id'] }})"
+                                                        class="text-green-600 hover:text-green-900">
+                                                    ↶ Przywróć
+                                                </button>
+                                            @else
+                                                <button type="button"
+                                                        wire:click="removeB2BPricing({{ $pricing['id'] }})"
+                                                        class="text-red-600 hover:text-red-900">
+                                                    🗑️ Usuń
+                                                </button>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @elseif($isEditing)
+                <div class="text-center py-8 text-gray-500">
+                    <p>Brak cenników B2B dla tego produktu.</p>
+                    <p class="text-sm">Użyj formularza powyżej aby dodać pierwszy cennik.</p>
+                </div>
+            @else
+                <div class="text-center py-8 text-gray-500">
+                    <p>Zapisz produkt aby móc dodać cenniki B2B.</p>
+                </div>
+            @endif
+        </div>
+
         {{-- Waga i jednostki --}}
         <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-lg font-medium text-gray-900 mb-4">Waga i jednostki</h2>

@@ -7,9 +7,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Product extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'sku',
         'ean',
@@ -79,6 +82,11 @@ class Product extends Model
     public function recipes(): HasMany
     {
         return $this->hasMany(Recipe::class);
+    }
+
+    public function b2bPricings(): HasMany
+    {
+        return $this->hasMany(B2BPricing::class);
     }
 
     // Akcesory i mutatory

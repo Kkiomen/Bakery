@@ -170,9 +170,17 @@
 
                             @if($quantityPricing->count() > 0)
                                 <div class="mt-2 text-xs text-gray-500">
-                                    <p class="font-medium">Rabaty ilościowe:</p>
+                                    <p class="font-medium text-green-600">💰 Rabaty ilościowe:</p>
                                     @foreach($quantityPricing as $qtyPrice)
-                                        <p>{{ $qtyPrice->min_quantity }}+ szt: {{ number_format($qtyPrice->price_net, 2) }} zł</p>
+                                        <p class="flex justify-between">
+                                            <span>{{ $qtyPrice->min_quantity }}{{ $qtyPrice->max_quantity ? '-'.$qtyPrice->max_quantity : '+' }} szt:</span>
+                                            <span class="font-medium text-green-600">
+                                                {{ number_format($qtyPrice->price_net, 2) }} zł
+                                                @if($qtyPrice->discount_percent > 0)
+                                                    <span class="text-red-500">(-{{ $qtyPrice->discount_percent }}%)</span>
+                                                @endif
+                                            </span>
+                                        </p>
                                     @endforeach
                                 </div>
                             @endif
@@ -297,8 +305,12 @@
                                         <p class="text-sm text-gray-600">
                                             {{ number_format($item['unit_price'], 2) }} zł/szt
                                             @if($item['discount_percent'] > 0)
-                                                <span class="text-red-600">(-{{ $item['discount_percent'] }}%)</span>
+                                                <span class="text-red-600">(-{{ $item['discount_percent'] }}% rabat)</span>
                                             @endif
+                                        </p>
+                                        <p class="text-xs text-gray-500">
+                                            Ilość: {{ $item['quantity'] }} szt
+                                            • Razem: {{ number_format($item['line_total'] ?? 0, 2) }} zł netto
                                         </p>
                                     </div>
                                     <div class="flex items-center space-x-3">
@@ -321,6 +333,24 @@
 
                         <!-- Podsumowanie -->
                         <div class="mt-6 border-t border-gray-200 pt-6">
+                            @php
+                                $totalSavings = 0;
+                                foreach($cart as $item) {
+                                    if(isset($item['discount_percent']) && $item['discount_percent'] > 0) {
+                                        $originalPrice = $item['unit_price'] / (1 - $item['discount_percent'] / 100);
+                                        $savings = ($originalPrice - $item['unit_price']) * $item['quantity'];
+                                        $totalSavings += $savings;
+                                    }
+                                }
+                            @endphp
+
+                            @if($totalSavings > 0)
+                                <div class="flex justify-between items-center mb-2 text-green-600">
+                                    <span class="font-medium">💰 Oszczędności (rabaty ilościowe):</span>
+                                    <span class="font-medium">-{{ number_format($totalSavings, 2) }} zł</span>
+                                </div>
+                            @endif
+
                             <div class="flex justify-between items-center mb-2">
                                 <span class="text-gray-600">Suma netto:</span>
                                 <span class="font-medium">{{ number_format($this->getCartTotal(), 2) }} zł</span>
