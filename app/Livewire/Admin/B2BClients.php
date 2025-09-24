@@ -4,6 +4,7 @@ namespace App\Livewire\Admin;
 
 use App\Models\B2BClient;
 use App\Models\B2BOrder;
+use App\Models\RecurringOrder;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -21,6 +22,7 @@ class B2BClients extends Component
 
     public $showCreateModal = false;
     public $showEditModal = false;
+    public $showDetailsModal = false;
     public $selectedClient = null;
 
     // Client form data
@@ -131,6 +133,40 @@ class B2BClients extends Component
         $this->showEditModal = false;
         $this->selectedClient = null;
         $this->resetForm();
+    }
+
+    public function openDetailsModal($clientId)
+    {
+        $this->selectedClient = B2BClient::with([
+            'orders' => function($query) {
+                $query->orderBy('created_at', 'desc')->limit(10);
+            },
+            'orders.items.product',
+            'recurringOrders' => function($query) {
+                $query->orderBy('created_at', 'desc');
+            }
+        ])->findOrFail($clientId);
+        $this->showDetailsModal = true;
+    }
+
+    public function closeDetailsModal()
+    {
+        $this->showDetailsModal = false;
+        $this->selectedClient = null;
+    }
+
+    public function impersonateClient($clientId)
+    {
+        $client = B2BClient::findOrFail($clientId);
+        session()->put('impersonated_user', $client->id);
+        session()->put('impersonated_user_type', 'b2b_client');
+
+        return redirect()->route('b2b.dashboard');
+    }
+
+    public function goToOrder($orderId)
+    {
+        return redirect()->route('admin.b2b-orders')->with('highlightOrder', $orderId);
     }
 
     private function loadClientData()

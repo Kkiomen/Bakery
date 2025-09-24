@@ -6,11 +6,14 @@ use App\Models\Delivery;
 use App\Models\DeliveryItem;
 use App\Models\ProductionOrder;
 use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 use Livewire\Component;
 use Illuminate\Validation\Rule;
 
 class CreateDelivery extends Component
 {
+    protected $listeners = ['editDelivery'];
     public $productionOrderId;
     public $selectedProductionOrder;
 
@@ -39,6 +42,10 @@ class CreateDelivery extends Component
     public $drivers = [];
     public $showLocationSearch = false;
     public $locationSearchResults = [];
+
+    // Editing
+    public $isEditing = false;
+    public $editingDeliveryId = null;
 
     protected function rules()
     {
@@ -88,6 +95,45 @@ class CreateDelivery extends Component
         $this->loadDrivers();
     }
 
+    public function editDelivery($deliveryId)
+    {
+        $delivery = Delivery::with(['productionOrder', 'items.product'])->findOrFail($deliveryId);
+
+        $this->isEditing = true;
+        $this->editingDeliveryId = $deliveryId;
+
+        // Fill form with delivery data
+        $this->productionOrderId = $delivery->production_order_id;
+        $this->selectedProductionOrder = $delivery->productionOrder;
+        $this->data_dostawy = $delivery->data_dostawy->format('Y-m-d');
+        $this->godzina_planowana = $delivery->godzina_planowana;
+        $this->priorytet = $delivery->priorytet;
+        $this->klient_nazwa = $delivery->klient_nazwa;
+        $this->klient_adres = $delivery->klient_adres;
+        $this->klient_telefon = $delivery->klient_telefon;
+        $this->klient_email = $delivery->klient_email;
+        $this->osoba_kontaktowa = $delivery->osoba_kontaktowa;
+        $this->telefon_kontaktowy = $delivery->telefon_kontaktowy;
+        $this->kod_pocztowy = $delivery->kod_pocztowy;
+        $this->miasto = $delivery->miasto;
+        $this->uwagi_dostawy = $delivery->uwagi_dostawy;
+        $this->driver_id = $delivery->driver_id;
+        $this->kolejnosc_dostawy = $delivery->kolejnosc_dostawy;
+
+        // Load delivery items
+        $this->selectedItems = [];
+        foreach ($delivery->items as $item) {
+            $this->selectedItems[] = [
+                'id' => $item->product_id,
+                'product_id' => $item->product_id,
+                'nazwa' => $item->product->nazwa,
+                'ilosc_dostepna' => $item->ilosc,
+                'ilosc_wybrana' => $item->ilosc,
+                'selected' => true
+            ];
+        }
+    }
+
     public function render()
     {
         return view('livewire.deliveries.create-delivery');
@@ -104,8 +150,6 @@ class CreateDelivery extends Component
             ->orderBy('data_produkcji', 'desc')
             ->get();
 
-        // Debug - usuń po naprawie
-        \Log::info('Available production orders loaded: ' . $this->availableProductionOrders->count());
     }
 
     public function loadDrivers()
@@ -117,13 +161,11 @@ class CreateDelivery extends Component
     public function updatedProductionOrderId($value)
     {
         if ($value) {
-            $this->selectedProductionOrder = ProductionOrder::with('items.product')
+            $this->selectedProductionOrder = ProductionOrder::with(['items.product', 'contractor', 'b2bOrder.client'])
                 ->findOrFail($value);
 
-            // Automatycznie wypełnij dane klienta jeśli są dostępne
-            if ($this->selectedProductionOrder->klient) {
-                $this->klient_nazwa = $this->selectedProductionOrder->klient;
-            }
+            // Inteligentnie wypełnij dane na podstawie źródła zlecenia
+            $this->prefillDeliveryData();
 
             // Resetuj wybrane pozycje
             $this->selectedItems = [];
@@ -154,6 +196,109 @@ class CreateDelivery extends Component
                 'nazwa_produktu' => $item->product->nazwa,
                 'jednostka' => $item->jednostka,
             ];
+        }
+    }
+
+    public function selectAllItems()
+    {
+        foreach ($this->selectedProductionOrder->items as $item) {
+            if ($item->ilosc_wyprodukowana > 0) {
+                $this->selectedItems[$item->id] = [
+                    'item_id' => $item->id,
+                    'ilosc' => $item->ilosc_wyprodukowana,
+                    'max_ilosc' => $item->ilosc_wyprodukowana,
+                    'nazwa_produktu' => $item->product->nazwa,
+                    'jednostka' => $item->jednostka,
+                ];
+            }
+        }
+    }
+
+    public function deselectAllItems()
+    {
+        $this->selectedItems = [];
+    }
+
+    private function prefillDeliveryData()
+    {
+        if (!$this->selectedProductionOrder) {
+            return;
+        }
+
+        $order = $this->selectedProductionOrder;
+
+        // Jeśli zlecenie pochodzi z B2B, wypełnij dane klienta B2B
+        if ($order->b2bOrder && $order->b2bOrder->client) {
+            $b2bOrder = $order->b2bOrder;
+            $client = $b2bOrder->client;
+
+            // Data dostawy z zamówienia B2B lub domyślna
+            if ($b2bOrder->delivery_date) {
+                $this->data_dostawy = Carbon::parse($b2bOrder->delivery_date)->format('Y-m-d');
+            }
+
+            // Godziny dostawy z zamówienia B2B
+            if ($b2bOrder->delivery_time_from) {
+                $this->godzina_planowana = Carbon::parse($b2bOrder->delivery_time_from)->format('H:i');
+            }
+
+            // Adres dostawy z zamówienia B2B
+            if ($b2bOrder->delivery_address) {
+                $this->klient_adres = $b2bOrder->delivery_address;
+                $this->kod_pocztowy = $b2bOrder->delivery_postal_code ?? '';
+                $this->miasto = $b2bOrder->delivery_city ?? '';
+            } else {
+                // Fallback na adres główny klienta
+                $this->klient_adres = $client->address ?? '';
+                $this->kod_pocztowy = $client->postal_code ?? '';
+                $this->miasto = $client->city ?? '';
+            }
+
+            // Dane kontaktowe klienta B2B
+            $this->klient_nazwa = $client->company_name ?? '';
+            $this->klient_telefon = $client->phone ?? '';
+            $this->klient_email = $client->email ?? '';
+            $this->osoba_kontaktowa = $client->contact_person ?? '';
+            $this->telefon_kontaktowy = $client->contact_phone ?? $client->phone ?? '';
+
+            // Uwagi z zamówienia B2B
+            if ($b2bOrder->delivery_notes) {
+                $this->uwagi_dostawy = $b2bOrder->delivery_notes;
+            }
+        }
+        // Jeśli zlecenie ma przypisanego kontrahenta, wypełnij jego dane
+        elseif ($order->contractor) {
+            $contractor = $order->contractor;
+
+            // Adres kontrahenta
+            $this->klient_adres = $contractor->adres ?? '';
+            $this->kod_pocztowy = $contractor->kod_pocztowy ?? '';
+            $this->miasto = $contractor->miasto ?? '';
+
+            // Dane kontaktowe kontrahenta
+            $this->klient_nazwa = $contractor->nazwa ?? '';
+            $this->klient_telefon = $contractor->telefon ?? '';
+            $this->klient_email = $contractor->email ?? '';
+            $this->osoba_kontaktowa = $contractor->osoba_kontaktowa ?? '';
+            $this->telefon_kontaktowy = $contractor->telefon_kontaktowy ?? $contractor->telefon ?? '';
+
+            // Data z zlecenia produkcyjnego
+            if ($order->data_produkcji) {
+                $this->data_dostawy = Carbon::parse($order->data_produkcji)->format('Y-m-d');
+            }
+        }
+        // Standardowe zlecenie - użyj danych ze zlecenia
+        else {
+            // Data z zlecenia produkcyjnego
+            if ($order->data_produkcji) {
+                $this->data_dostawy = Carbon::parse($order->data_produkcji)->format('Y-m-d');
+            }
+
+            // Jeśli jest klient w polu tekstowym
+            if ($order->klient) {
+                $this->klient_nazwa = $order->klient;
+                $this->uwagi_dostawy = 'Standardowe zlecenie dla: ' . $order->klient;
+            }
         }
     }
 
@@ -208,11 +353,50 @@ class CreateDelivery extends Component
 
     public function createDelivery()
     {
-        $this->validate();
+        try {
+            $this->validate();
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Validation failed - collect all error messages
+            $errorMessages = [];
+            foreach ($e->validator->errors()->all() as $error) {
+                $errorMessages[] = $error;
+            }
+
+            $this->dispatch('delivery-creation-failed', [
+                'message' => 'Formularz zawiera błędy: ' . implode(', ', $errorMessages)
+            ]);
+            return;
+        }
 
         try {
-            // Utwórz dostawę
-            $delivery = Delivery::create([
+            if ($this->isEditing) {
+                // Aktualizuj istniejącą dostawę
+                $delivery = Delivery::findOrFail($this->editingDeliveryId);
+                $delivery->update([
+                    'production_order_id' => $this->productionOrderId,
+                    'driver_id' => $this->driver_id ?: null,
+                    'status' => $this->driver_id ? 'przypisana' : 'oczekujaca',
+                    'priorytet' => $this->priorytet,
+                    'data_dostawy' => $this->data_dostawy,
+                    'godzina_planowana' => $this->godzina_planowana ?
+                        $this->data_dostawy . ' ' . $this->godzina_planowana : null,
+                    'klient_nazwa' => $this->klient_nazwa,
+                    'klient_adres' => $this->klient_adres,
+                    'klient_telefon' => $this->klient_telefon,
+                    'klient_email' => $this->klient_email,
+                    'osoba_kontaktowa' => $this->osoba_kontaktowa,
+                    'telefon_kontaktowy' => $this->telefon_kontaktowy,
+                    'kod_pocztowy' => $this->kod_pocztowy,
+                    'miasto' => $this->miasto,
+                    'uwagi_dostawy' => $this->uwagi_dostawy,
+                    'kolejnosc_dostawy' => $this->kolejnosc_dostawy,
+                ]);
+
+                // Usuń stare pozycje dostawy
+                $delivery->items()->delete();
+            } else {
+                // Utwórz nową dostawę
+                $delivery = Delivery::create([
                 'production_order_id' => $this->productionOrderId,
                 'driver_id' => $this->driver_id ?: null,
                 'status' => $this->driver_id ? 'przypisana' : 'oczekujaca',
@@ -264,11 +448,19 @@ class CreateDelivery extends Component
                 }
             }
 
-            $this->dispatch('delivery-created', [
-                'message' => 'Dostawa została utworzona pomyślnie.',
-                'deliveryId' => $delivery->id
-            ]);
+            if ($this->isEditing) {
+                $this->dispatch('delivery-created', [
+                    'message' => 'Dostawa została zaktualizowana pomyślnie. Numer dostawy: ' . $delivery->numer_dostawy,
+                    'deliveryId' => $delivery->id
+                ]);
+            } else {
+                $this->dispatch('delivery-created', [
+                    'message' => 'Dostawa została utworzona pomyślnie. Numer dostawy: ' . ($delivery->numer_dostawy ?? 'Wygenerowany automatycznie'),
+                    'deliveryId' => $delivery->id
+                ]);
+            }
 
+            // Reset form only after successful creation/update
             $this->reset();
             $this->mount();
 

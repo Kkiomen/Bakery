@@ -32,11 +32,13 @@
                     Dodaj zdjęcia produktów
                 </flux:button>
 
-                @if(!$delivery->signature()->exists())
-                    <flux:button wire:click="openSignatureModal" variant="outline" >
+                <flux:button wire:click="openSignatureModal" variant="outline" >
+                    @if($delivery->signature()->exists())
+                        Edytuj podpis odbiorcy
+                    @else
                         Podpis odbiorcy
-                    </flux:button>
-                @endif
+                    @endif
+                </flux:button>
             @endif
 
             @if($delivery->canBeCompleted())
@@ -285,30 +287,34 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 @foreach($delivery->photos as $photo)
                 <div class="relative group">
-                    <img src="{{ $photo->full_url }}"
+                    <img src="{{ $photo->url }}"
                          alt="{{ $photo->opis }}"
-                         class="w-full h-32 object-cover rounded-lg">
+                         class="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                         style="min-height: 128px; background-color: #f3f4f6; display: block; z-index: 1; position: relative;"
+                         onerror="console.error('Failed to load image:', this.src); this.style.border='2px solid red'; this.style.background='#fee';"
+                         onload="console.log('Image loaded successfully:', this.src, 'Size:', this.naturalWidth + 'x' + this.naturalHeight); this.style.background='transparent';"
+                         wire:click="showPhotoModal({{ $photo->id }})">
 
                     <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center">
                         <div class="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <flux:button wire:click="deletePhoto({{ $photo->id }})"
-                                       variant="ghost"
-                                       size="sm"
-                                       wire:confirm="Czy na pewno chcesz usunąć to zdjęcie?">
-                            </flux:button>
+                            <button wire:click="deletePhoto({{ $photo->id }})"
+                                    wire:confirm="Czy na pewno chcesz usunąć to zdjęcie?"
+                                    class="bg-red-600 text-white p-2 rounded-full hover:bg-red-700">
+                                🗑️
+                            </button>
                         </div>
                     </div>
 
                     <div class="absolute top-2 left-2">
-                        <flux:badge :color="match($photo->typ_zdjecia) {
-                            'produkty' => 'blue',
-                            'dowod_dostawy' => 'green',
-                            'problem' => 'red',
-                            'lokalizacja' => 'purple',
-                            default => 'gray'
-                        }" size="sm">
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                            @if($photo->typ_zdjecia === 'produkty') bg-blue-100 text-blue-800
+                            @elseif($photo->typ_zdjecia === 'dowod_dostawy') bg-green-100 text-green-800
+                            @elseif($photo->typ_zdjecia === 'problem') bg-red-100 text-red-800
+                            @elseif($photo->typ_zdjecia === 'lokalizacja') bg-purple-100 text-purple-800
+                            @else bg-gray-100 text-gray-800
+                            @endif">
                             {{ $photo->typ_zdjecia_label }}
-                        </flux:badge>
+                        </span>
                     </div>
 
                     @if($photo->opis)
@@ -334,9 +340,13 @@
     <div class="bg-white rounded-lg shadow p-4">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-medium text-gray-900">Podpis odbiorcy</h3>
-            @if($delivery->status === 'w_drodze' && !$delivery->signature()->exists())
+            @if($delivery->status === 'w_drodze')
                 <flux:button wire:click="openSignatureModal" variant="outline" size="sm" >
-                    Dodaj podpis
+                    @if($delivery->signature()->exists())
+                        Edytuj podpis
+                    @else
+                        Dodaj podpis
+                    @endif
                 </flux:button>
             @endif
         </div>
@@ -520,7 +530,13 @@
         <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div class="bg-white rounded-lg max-w-2xl w-full">
                 <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h3 class="text-lg font-medium text-gray-900">Podpis odbiorcy - {{ $delivery->numer_dostawy }}</h3>
+                    <h3 class="text-lg font-medium text-gray-900">
+                        @if($delivery->signature()->exists())
+                            Edytuj podpis odbiorcy - {{ $delivery->numer_dostawy }}
+                        @else
+                            Podpis odbiorcy - {{ $delivery->numer_dostawy }}
+                        @endif
+                    </h3>
                     <button wire:click="closeModal"
                             class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -583,7 +599,11 @@
                     </button>
                     <button wire:click="saveSignature"
                             class="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700">
-                        Zapisz podpis
+                        @if($delivery->signature()->exists())
+                            Zaktualizuj podpis
+                        @else
+                            Zapisz podpis
+                        @endif
                     </button>
                 </div>
             </div>
@@ -670,6 +690,38 @@
             </div>
         </div>
     @endif
+
+    <!-- Photo Viewer Modal -->
+    @if($showPhotoViewer && $selectedPhoto)
+        <div class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
+             wire:click="closeModal">
+            <div class="max-w-4xl max-h-full flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-white">
+                        <h3 class="text-lg font-medium">{{ $selectedPhoto->typ_zdjecia_label }}</h3>
+                        @if($selectedPhoto->opis)
+                            <p class="text-sm text-gray-300">{{ $selectedPhoto->opis }}</p>
+                        @endif
+                    </div>
+                    <button wire:click="closeModal"
+                            class="text-white hover:text-gray-300 text-2xl">
+                        ✕
+                    </button>
+                </div>
+
+                <div class="flex justify-center">
+                    <img src="{{ $selectedPhoto->url }}"
+                         alt="{{ $selectedPhoto->opis }}"
+                         class="max-w-full max-h-[80vh] object-contain rounded-lg"
+                         onclick="event.stopPropagation();">
+                </div>
+
+                <div class="mt-4 text-center text-sm text-gray-300">
+                    Kliknij poza zdjęciem aby zamknąć
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 
 @script
@@ -678,38 +730,75 @@
 
     // Initialize signature pad when modal opens
     $wire.on('showSignatureModal', () => {
+        console.log('showSignatureModal event received');
         setTimeout(() => {
             const canvas = document.getElementById('signature-pad-details');
-            if (canvas) {
+            console.log('Canvas element:', canvas);
+
+            if (canvas && typeof SignaturePad !== 'undefined') {
+                console.log('Initializing SignaturePad');
                 signaturePadDetails = new SignaturePad(canvas, {
                     backgroundColor: 'rgb(255, 255, 255)',
-                    penColor: 'rgb(0, 0, 0)'
+                    penColor: 'rgb(0, 0, 0)',
+                    minWidth: 1,
+                    maxWidth: 3,
+                    throttle: 16,
+                    minDistance: 5
                 });
 
                 signaturePadDetails.addEventListener('endStroke', () => {
+                    console.log('Signature stroke ended');
                     $wire.updateSignatureData(signaturePadDetails.toDataURL());
                 });
 
                 // Resize canvas
                 const resizeCanvas = () => {
                     const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                    canvas.width = canvas.offsetWidth * ratio;
-                    canvas.height = canvas.offsetHeight * ratio;
+                    const rect = canvas.getBoundingClientRect();
+                    canvas.width = rect.width * ratio;
+                    canvas.height = rect.height * ratio;
                     canvas.getContext('2d').scale(ratio, ratio);
-                    signaturePadDetails.clear();
+                    canvas.style.width = rect.width + 'px';
+                    canvas.style.height = rect.height + 'px';
+                    if (signaturePadDetails) {
+                        signaturePadDetails.clear();
+                    }
                 };
 
                 window.addEventListener('resize', resizeCanvas);
                 resizeCanvas();
+
+                // Load existing signature if available
+                setTimeout(() => {
+                    loadExistingSignature();
+                }, 100);
+            } else {
+                console.error('Canvas not found or SignaturePad not loaded');
             }
-        }, 100);
+        }, 200);
     });
+
+    // Function to load existing signature
+    function loadExistingSignature() {
+        // Get signature data from Livewire component
+        const signatureData = @json($signatureData ?? '');
+        console.log('Loading existing signature:', signatureData ? 'Found' : 'None');
+
+        if (signatureData && signaturePadDetails && signatureData.startsWith('data:image')) {
+            console.log('Loading signature onto canvas');
+            signaturePadDetails.fromDataURL(signatureData);
+        }
+    }
 
     // Clear signature function
     window.clearSignatureDetails = () => {
+        console.log('Clear signature called');
         if (signaturePadDetails) {
             signaturePadDetails.clear();
             $wire.updateSignatureData('');
+            console.log('Signature cleared');
+        } else {
+            console.error('SignaturePad not initialized');
         }
     };
 

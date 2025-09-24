@@ -7,6 +7,11 @@
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-{{ $order->status_color }}-100 text-{{ $order->status_color }}-800">
                     {{ $order->status_label }}
                 </span>
+                @if($order->b2b_order_id)
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                        🏢 B2B
+                    </span>
+                @endif
                 <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-{{ $order->priorytet_color }}-100 text-{{ $order->priorytet_color }}-800">
                     {{ $order->priorytet_label }}
                 </span>
@@ -121,6 +126,22 @@
                         </div>
                     @endif
 
+                    @if($order->b2bOrder)
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Zamówienie B2B</dt>
+                            <dd class="mt-1 text-sm text-gray-900">
+                                <a href="{{ route('admin.b2b-orders') }}?search={{ $order->b2bOrder->numer_zamowienia }}"
+                                   class="text-purple-600 hover:text-purple-800 font-medium">
+                                    {{ $order->b2bOrder->numer_zamowienia }}
+                                </a>
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-500">Klient B2B</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ $order->b2bOrder->client->company_name }}</dd>
+                        </div>
+                    @endif
+
                     @if($order->data_rozpoczecia)
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Rozpoczęto</dt>
@@ -155,7 +176,18 @@
             <div class="bg-white shadow rounded-lg p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-lg font-medium text-gray-900">Pozycje do wyprodukowania</h3>
-                    <span class="text-sm text-gray-500">{{ $order->items->count() }} pozycji</span>
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm text-gray-500">{{ $order->items->count() }} pozycji</span>
+                        @if($order->items()->whereIn('status', ['zakonczona', 'w_produkcji'])->where('ilosc_wyprodukowana', '>', 0)->count() > 0)
+                            <button wire:click="openDeliveryModal"
+                                    class="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Utwórz dostawę
+                            </button>
+                        @endif
+                    </div>
                 </div>
 
                 <div class="space-y-4">
@@ -238,6 +270,70 @@
                     @endforeach
                 </div>
             </div>
+
+            {{-- Dostawy --}}
+            @if($order->deliveries->count() > 0)
+                <div class="bg-white shadow rounded-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Dostawy</h3>
+                        <span class="text-sm text-gray-500">{{ $order->deliveries->count() }} dostaw</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        @foreach($order->deliveries as $delivery)
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <div class="flex items-center space-x-3">
+                                            <h4 class="font-medium text-gray-900">{{ $delivery->numer_dostawy }}</h4>
+                                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-{{ $delivery->status_color }}-100 text-{{ $delivery->status_color }}-800">
+                                                {{ $delivery->status_label }}
+                                            </span>
+                                        </div>
+
+                                        <div class="mt-1 text-sm text-gray-500">
+                                            <span>📅 {{ $delivery->data_dostawy->format('d.m.Y') }}</span>
+                                            <span class="mx-2">•</span>
+                                            <span>🕐 {{ $delivery->godzina_od }} - {{ $delivery->godzina_do }}</span>
+                                            @if($delivery->contractor)
+                                                <span class="mx-2">•</span>
+                                                <span>🚚 {{ $delivery->contractor->nazwa }}</span>
+                                            @endif
+                                        </div>
+
+                                        <div class="mt-1 text-sm text-gray-500">
+                                            📍 {{ $delivery->adres_dostawy }}, {{ $delivery->kod_pocztowy }} {{ $delivery->miasto }}
+                                        </div>
+
+                                        @if($delivery->items->count() > 0)
+                                            <div class="mt-2 text-sm text-gray-500">
+                                                📦 {{ $delivery->items->count() }} pozycji:
+                                                {{ $delivery->items->pluck('nazwa_produktu')->take(3)->join(', ') }}
+                                                @if($delivery->items->count() > 3)
+                                                    i {{ $delivery->items->count() - 3 }} więcej
+                                                @endif
+                                            </div>
+                                        @endif
+
+                                        @if($delivery->uwagi)
+                                            <div class="mt-1 text-sm text-gray-500">
+                                                💬 {{ $delivery->uwagi }}
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="flex items-center space-x-2">
+                                        <a href="{{ route('deliveries.show', $delivery) }}"
+                                           class="text-blue-600 hover:text-blue-800 text-sm">
+                                            Szczegóły
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- Panel boczny --}}
@@ -347,6 +443,352 @@
                         Zapisz
                     </button>
                 </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal tworzenia dostawy --}}
+    @if($showDeliveryModal)
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-900">
+                        Utwórz nową dostawę
+                    </h3>
+
+                    {{-- Informacja o źródle danych --}}
+                    @if($order->b2bOrder && $order->b2bOrder->client)
+                        <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="text-sm text-blue-700">
+                                    <strong>Zlecenie B2B:</strong> Dane wypełnione automatycznie z zamówienia klienta {{ $order->b2bOrder->client->company_name }}
+                                </span>
+                            </div>
+                        </div>
+                    @elseif($order->contractor)
+                        <div class="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 text-green-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div>
+                                    <div class="text-sm text-green-700">
+                                        <strong>Zlecenie kontrahenta:</strong> Dane wypełnione automatycznie
+                                    </div>
+                                    <div class="text-xs text-green-600 mt-1">
+                                        <strong>{{ $order->contractor->nazwa }}</strong>
+                                        @if($order->contractor->adres)
+                                            <br>{{ $order->contractor->adres }}
+                                            @if($order->contractor->kod_pocztowy || $order->contractor->miasto)
+                                                , {{ $order->contractor->kod_pocztowy }} {{ $order->contractor->miasto }}
+                                            @endif
+                                        @endif
+                                        @if($order->contractor->telefon)
+                                            <br>Tel: {{ $order->contractor->telefon }}
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @elseif($order->klient)
+                        <div class="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
+                            <div class="flex items-center">
+                                <svg class="w-4 h-4 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="text-sm text-gray-700">
+                                    <strong>Standardowe zlecenie:</strong> Klient {{ $order->klient }}
+                                </span>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                <form wire:submit="createDelivery">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {{-- Lewa kolumna --}}
+                        <div class="space-y-4">
+                            <h4 class="font-medium text-gray-900">Szczegóły dostawy</h4>
+
+                            {{-- Data dostawy --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Data dostawy <span class="text-red-500">*</span>
+                                </label>
+                                <input type="date"
+                                       wire:model="deliveryDate"
+                                       min="{{ now()->format('Y-m-d') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('deliveryDate') border-red-500 @enderror">
+                                @error('deliveryDate')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- Godziny dostawy --}}
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Od <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="time"
+                                           wire:model="deliveryTimeFrom"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('deliveryTimeFrom') border-red-500 @enderror">
+                                    @error('deliveryTimeFrom')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Do <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="time"
+                                           wire:model="deliveryTimeTo"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('deliveryTimeTo') border-red-500 @enderror">
+                                    @error('deliveryTimeTo')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            {{-- Kontrahent - tylko dla zleceń nie-B2B --}}
+                            @if(!($order->b2bOrder && $order->b2bOrder->client))
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Kontrahent <span class="text-red-500">*</span>
+                                    </label>
+                                    <select wire:model="contractorId"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('contractorId') border-red-500 @enderror">
+                                        <option value="">Wybierz kontrahenta</option>
+                                        @foreach($contractors as $contractor)
+                                            <option value="{{ $contractor->id }}">{{ $contractor->nazwa }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('contractorId')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            @else
+                                <div class="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m0 0h2M7 7h10M7 11h4m6 0h2M7 15h2m4 0h2"></path>
+                                        </svg>
+                                        <div>
+                                            <span class="text-sm font-medium text-blue-700">Dostawa bezpośrednia do klienta B2B</span>
+                                            <div class="text-xs text-blue-600 mt-1">{{ $order->b2bOrder->client->company_name }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            {{-- Adres dostawy --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Adres dostawy <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text"
+                                       wire:model="deliveryAddress"
+                                       placeholder="ul. Przykładowa 123"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('deliveryAddress') border-red-500 @enderror">
+                                @error('deliveryAddress')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Kod pocztowy <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text"
+                                           wire:model="deliveryPostalCode"
+                                           placeholder="00-000"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('deliveryPostalCode') border-red-500 @enderror">
+                                    @error('deliveryPostalCode')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Miasto <span class="text-red-500">*</span>
+                                    </label>
+                                    <input type="text"
+                                           wire:model="deliveryCity"
+                                           placeholder="Warszawa"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('deliveryCity') border-red-500 @enderror">
+                                    @error('deliveryCity')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            {{-- Nazwa klienta --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Nazwa klienta <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text"
+                                       wire:model="clientName"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('clientName') border-red-500 @enderror"
+                                       placeholder="Nazwa firmy lub klienta">
+                                @error('clientName')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- Dane kontaktowe --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {{-- Telefon klienta --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Telefon klienta
+                                    </label>
+                                    <input type="tel"
+                                           wire:model="clientPhone"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('clientPhone') border-red-500 @enderror"
+                                           placeholder="+48 123 456 789">
+                                    @error('clientPhone')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Email klienta --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Email klienta
+                                    </label>
+                                    <input type="email"
+                                           wire:model="clientEmail"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('clientEmail') border-red-500 @enderror"
+                                           placeholder="klient@example.com">
+                                    @error('clientEmail')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            {{-- Dane osoby kontaktowej --}}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {{-- Osoba kontaktowa --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Osoba kontaktowa
+                                    </label>
+                                    <input type="text"
+                                           wire:model="contactPerson"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('contactPerson') border-red-500 @enderror"
+                                           placeholder="Jan Kowalski">
+                                    @error('contactPerson')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                {{-- Telefon kontaktowy --}}
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                                        Telefon kontaktowy
+                                    </label>
+                                    <input type="tel"
+                                           wire:model="contactPhone"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('contactPhone') border-red-500 @enderror"
+                                           placeholder="+48 123 456 789">
+                                    @error('contactPhone')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+
+                            {{-- Uwagi --}}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    Uwagi do dostawy
+                                </label>
+                                <textarea wire:model="deliveryNotes"
+                                          rows="3"
+                                          placeholder="Dodatkowe informacje o dostawie..."
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+
+                            {{-- Opcja zakończenia zlecenia --}}
+                            @if($order->canBeCompleted())
+                                <div class="border-t pt-4">
+                                    <label class="flex items-center">
+                                        <input type="checkbox"
+                                               wire:model="completeOrderAfterDelivery"
+                                               class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                        <span class="ml-2 text-sm text-gray-900">
+                                            <span class="font-medium">Zakończ zlecenie po utworzeniu dostawy</span>
+                                            <span class="block text-xs text-gray-500 mt-1">
+                                                Zlecenie zostanie automatycznie oznaczone jako zakończone
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                            @endif
+                        </div>
+
+                        {{-- Prawa kolumna --}}
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-medium text-gray-900">Pozycje do dostawy</h4>
+                                <span class="text-sm text-gray-500" x-data="{ count: $wire.selectedItems.length }" x-text="`${count} wybranych`"></span>
+                            </div>
+                            @error('selectedItems')
+                                <p class="text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+
+                            <div class="max-h-96 overflow-y-auto border border-gray-200 rounded-md">
+                                @foreach($order->items()->whereIn('status', ['zakonczona', 'w_produkcji'])->where('ilosc_wyprodukowana', '>', 0)->get() as $item)
+                                    <label class="flex items-center p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+                                        <input type="checkbox"
+                                               wire:model="selectedItems"
+                                               value="{{ $item->id }}"
+                                               class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                        <div class="ml-3 flex-1">
+                                            <div class="flex items-center justify-between">
+                                                <span class="font-medium text-gray-900">{{ $item->product->nazwa }}</span>
+                                                <span class="text-sm text-gray-500">{{ $item->ilosc_wyprodukowana }} {{ $item->jednostka }}</span>
+                                            </div>
+                                            <div class="text-sm text-gray-500">
+                                                Status: {{ $item->status_label }}
+                                                @if($item->uwagi)
+                                                    • {{ $item->uwagi }}
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </label>
+                                @endforeach
+                            </div>
+
+                            @if($order->items()->whereIn('status', ['zakonczona', 'w_produkcji'])->where('ilosc_wyprodukowana', '>', 0)->count() === 0)
+                                <div class="text-center py-8 text-gray-500">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path>
+                                    </svg>
+                                    <h3 class="mt-2 text-sm font-medium text-gray-900">Brak gotowych pozycji</h3>
+                                    <p class="mt-1 text-sm text-gray-500">Nie ma pozycji gotowych do dostawy.</p>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200">
+                        <button type="button"
+                                wire:click="closeDeliveryModal"
+                                class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            Anuluj
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                x-bind:disabled="$wire.selectedItems.length === 0">
+                            <span x-show="$wire.completeOrderAfterDelivery">Utwórz dostawę i zakończ zlecenie</span>
+                            <span x-show="!$wire.completeOrderAfterDelivery">Utwórz dostawę</span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     @endif

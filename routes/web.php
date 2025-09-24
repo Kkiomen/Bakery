@@ -80,6 +80,10 @@ Route::middleware(['auth'])->group(function () {
         return view('admin.b2b-clients');
     })->name('admin.b2b-clients');
 
+    Route::get('/admin/b2b-orders', function () {
+        return view('admin.b2b-orders');
+    })->name('admin.b2b-orders');
+
     Route::get('/admin/impersonate', function () {
         return view('admin.impersonate');
     })->name('admin.impersonate');
@@ -126,9 +130,7 @@ Route::middleware(['auth'])->group(function () {
     // Trasy dla panelu kierowcy
     Route::prefix('driver')->name('driver.')->group(function () {
         Route::get('/', App\Livewire\Driver\DriverDashboard::class)->name('dashboard');
-        Route::get('/deliveries/{delivery}', function (App\Models\Delivery $delivery) {
-            return view('driver.delivery-details', compact('delivery'));
-        })->name('deliveries.show');
+        Route::get('/deliveries/{delivery}', App\Livewire\Driver\DeliveryDetails::class)->name('deliveries.show');
     });
 });
 

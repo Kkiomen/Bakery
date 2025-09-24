@@ -86,12 +86,84 @@
                     </select>
                 </div>
 
-                <div>
+                <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Klient</label>
-                    <input type="text"
-                           wire:model="klient"
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                           placeholder="Nazwa klienta/sklepu">
+                    
+                    {{-- Wybrany kontrahent --}}
+                    @if($selectedContractor)
+                        <div class="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-md">
+                            <div>
+                                <div class="font-medium text-green-900">{{ $selectedContractor->nazwa }}</div>
+                                <div class="text-sm text-green-700">
+                                    @if($selectedContractor->nip)
+                                        NIP: {{ $selectedContractor->nip }} |
+                                    @endif
+                                    {{ $selectedContractor->miasto }}
+                                    @if($selectedContractor->telefon)
+                                        | Tel: {{ $selectedContractor->telefon }}
+                                    @endif
+                                </div>
+                            </div>
+                            <button type="button"
+                                    wire:click="clearContractor"
+                                    class="text-red-600 hover:text-red-800">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    @else
+                        {{-- Wyszukiwarka kontrahentów --}}
+                        <div class="space-y-2">
+                            <div class="flex space-x-2">
+                                <input type="text"
+                                       wire:model.live="contractorSearch"
+                                       wire:focus="$set('showContractorSearch', true)"
+                                       class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Wyszukaj kontrahenta po nazwie, NIP lub mieście...">
+                                <button type="button"
+                                        wire:click="$toggle('showContractorSearch')"
+                                        class="px-3 py-2 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {{-- Lista kontrahentów --}}
+                            @if($showContractorSearch && count($contractors) > 0)
+                                <div class="max-h-60 overflow-y-auto border border-gray-200 rounded-md bg-white shadow-lg">
+                                    @foreach($contractors as $contractor)
+                                        <button type="button"
+                                                wire:click="selectContractor({{ $contractor->id }})"
+                                                class="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0">
+                                            <div class="font-medium text-gray-900">{{ $contractor->nazwa }}</div>
+                                            <div class="text-sm text-gray-500">
+                                                @if($contractor->nip)
+                                                    NIP: {{ $contractor->nip }} |
+                                                @endif
+                                                {{ $contractor->miasto }}
+                                                @if($contractor->telefon)
+                                                    | Tel: {{ $contractor->telefon }}
+                                                @endif
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            {{-- Pole tekstowe jako alternatywa --}}
+                            <div class="pt-2 border-t border-gray-200">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">
+                                    Lub podaj nazwę klienta ręcznie:
+                                </label>
+                                <input type="text"
+                                       wire:model="klient"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                                       placeholder="Nazwa klienta/sklepu">
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
 

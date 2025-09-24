@@ -1,4 +1,75 @@
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ showSuccess: false, showError: false, message: '' }">
+
+    {{-- Success Message --}}
+    <div x-show="showSuccess"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform translate-y-2"
+         class="rounded-md bg-green-50 p-4 border border-green-200">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-green-800" x-text="message"></p>
+            </div>
+            <div class="ml-auto pl-3">
+                <div class="-mx-1.5 -my-1.5">
+                    <button @click="showSuccess = false" class="inline-flex rounded-md bg-green-50 p-1.5 text-green-500 hover:bg-green-100">
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Error Message --}}
+    <div x-show="showError"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform translate-y-2"
+         class="rounded-md bg-red-50 p-4 border border-red-200">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-red-800" x-text="message"></p>
+            </div>
+            <div class="ml-auto pl-3">
+                <div class="-mx-1.5 -my-1.5">
+                    <button @click="showError = false" class="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100">
+                        <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl font-semibold text-gray-900">
+            @if($isEditing)
+                Edytuj dostawę
+            @else
+                Nowa dostawa
+            @endif
+        </h2>
+    </div>
+
     <form wire:submit="createDelivery">
         <!-- Production Order Selection -->
         <div class="bg-gray-50 rounded-lg p-4">
@@ -97,7 +168,7 @@
                 <div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Kolejność dostawy</label>
-                        <flux:input type="number" wire:model="kolejnosc_dostawy" min="0"
+                        <input type="number" wire:model="kolejnosc_dostawy" min="0"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('kolejnosc_dostawy') border-red-500 @enderror" />
                     </div>
                     @error('kolejnosc_dostawy')
@@ -126,7 +197,7 @@
                 <div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Telefon klienta</label>
-                        <flux:input type="text" wire:model="klient_telefon"
+                        <input type="text" wire:model="klient_telefon"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('klient_telefon') border-red-500 @enderror" />
                     </div>
                     @error('klient_telefon')
@@ -137,7 +208,7 @@
                 <div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Email klienta</label>
-                        <flux:input type="email" wire:model="klient_email"
+                        <input type="email" wire:model="klient_email"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('klient_email') border-red-500 @enderror" />
                     </div>
                     @error('klient_email')
@@ -148,7 +219,7 @@
                 <div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Osoba kontaktowa</label>
-                        <flux:input type="text" wire:model="osoba_kontaktowa"
+                        <input type="text" wire:model="osoba_kontaktowa"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('osoba_kontaktowa') border-red-500 @enderror" />
                     </div>
                     @error('osoba_kontaktowa')
@@ -159,7 +230,7 @@
                 <div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Telefon kontaktowy</label>
-                        <flux:input type="text" wire:model="telefon_kontaktowy"
+                        <input type="text" wire:model="telefon_kontaktowy"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('telefon_kontaktowy') border-red-500 @enderror" />
                     </div>
                     @error('telefon_kontaktowy')
@@ -201,7 +272,7 @@
                 <div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Kod pocztowy</label>
-                        <flux:input type="text" wire:model="kod_pocztowy"
+                        <input type="text" wire:model="kod_pocztowy"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('kod_pocztowy') border-red-500 @enderror" />
                     </div>
                     @error('kod_pocztowy')
@@ -212,7 +283,7 @@
                 <div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Miasto</label>
-                        <flux:input type="text" wire:model="miasto"
+                        <input type="text" wire:model="miasto"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 @error('miasto') border-red-500 @enderror" />
                     </div>
                     @error('miasto')
@@ -236,7 +307,27 @@
         <!-- Items Selection -->
         @if($selectedProductionOrder)
         <div class="bg-gray-50 rounded-lg p-4">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">Pozycje do Dostawy</h3>
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Pozycje do Dostawy</h3>
+                <div class="flex space-x-2">
+                    <button type="button"
+                            wire:click="selectAllItems"
+                            class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Zaznacz wszystkie
+                    </button>
+                    <button type="button"
+                            wire:click="deselectAllItems"
+                            class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Odznacz wszystkie
+                    </button>
+                </div>
+            </div>
 
             <div class="space-y-3">
                 @foreach($selectedProductionOrder->items as $item)
@@ -340,7 +431,11 @@
                 Anuluj
             </flux:button>
             <flux:button type="submit" variant="primary">
-                Utwórz Dostawę
+                @if($isEditing)
+                    Zaktualizuj Dostawę
+                @else
+                    Utwórz Dostawę
+                @endif
             </flux:button>
         </div>
     </form>
@@ -349,19 +444,30 @@
 @script
 <script>
     $wire.on('delivery-created', (data) => {
-        // Close modal and show success message
-        $wire.dispatch('hideCreateForm');
-        // Show notification
-        console.log(data.message);
+        // Show success message in the form
+        const container = document.querySelector('[x-data*="showSuccess"]').__x.$data;
+        container.message = data[0].message;
+        container.showSuccess = true;
+        container.showError = false;
+
+        // Auto hide after 2 seconds - parent will handle modal closing
+        setTimeout(() => {
+            container.showSuccess = false;
+        }, 2000);
     });
 
     $wire.on('delivery-creation-failed', (data) => {
-        // Show error notification
-        console.error(data.message);
-    });
+        // Show error message in the form
+        const container = document.querySelector('[x-data*="showError"]').__x.$data;
+        container.message = data[0].message;
+        container.showError = true;
+        container.showSuccess = false;
 
-    $wire.on('delivery-creation-cancelled', () => {
-        $wire.dispatch('hideCreateForm');
+        // Scroll to top to show error
+        document.querySelector('[x-data*="showError"]').scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
     });
 </script>
 @endscript

@@ -39,7 +39,8 @@ class DriverDashboard extends Component
 
     public function mount()
     {
-        $this->selectedDate = now()->format('Y-m-d');
+        // Pobierz datę z sesji lub ustaw dzisiejszą jako domyślną
+        $this->selectedDate = session('driver_selected_date', now()->format('Y-m-d'));
     }
 
     public function render()
@@ -83,6 +84,19 @@ class DriverDashboard extends Component
         $this->currentDelivery = Delivery::with(['productionOrder', 'items.product', 'photos', 'signature'])
             ->findOrFail($deliveryId);
         $this->showDeliveryDetails = true;
+    }
+
+    public function updatedSelectedDate($value)
+    {
+        // Zapisz wybraną datę w sesji
+        session(['driver_selected_date' => $value]);
+    }
+
+    public function showToday()
+    {
+        $today = now()->format('Y-m-d');
+        $this->selectedDate = $today;
+        session(['driver_selected_date' => $today]);
     }
 
     public function startDelivery($deliveryId)
@@ -174,10 +188,24 @@ class DriverDashboard extends Component
     {
         $this->currentDelivery = Delivery::findOrFail($deliveryId);
         $this->showSignatureModal = true;
-        $this->signatureData = '';
-        $this->signerName = '';
-        $this->signerPosition = '';
-        $this->signatureNotes = '';
+
+        // Check if signature already exists and pre-fill form
+        if ($this->currentDelivery->signature()->exists()) {
+            $signature = $this->currentDelivery->signature()->first();
+            $this->signatureData = $signature->signature_image; // Full base64 with prefix
+            $this->signerName = $signature->signer_name;
+            $this->signerPosition = $signature->signer_position ?? '';
+            $this->signatureNotes = $signature->uwagi ?? '';
+        } else {
+            // Clear form for new signature
+            $this->signatureData = '';
+            $this->signerName = '';
+            $this->signerPosition = '';
+            $this->signatureNotes = '';
+        }
+
+        // Emit event to initialize signature pad
+        $this->dispatch('showSignatureModal');
     }
 
     public function saveSignature()
@@ -196,19 +224,40 @@ class DriverDashboard extends Component
             // Usuń prefix "data:image/png;base64," jeśli istnieje
             $signatureData = preg_replace('/^data:image\/png;base64,/', '', $this->signatureData);
 
-            DeliverySignature::create([
-                'delivery_id' => $this->currentDelivery->id,
-                'signature_data' => $signatureData,
-                'signer_name' => $this->signerName,
-                'signer_position' => $this->signerPosition,
-                'signature_date' => now(),
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-                'uwagi' => $this->signatureNotes,
-            ]);
+            // Check if signature already exists for this delivery
+            $existingSignature = $this->currentDelivery->signature()->first();
+
+            if ($existingSignature) {
+                // Update existing signature
+                $existingSignature->update([
+                    'signature_data' => $signatureData,
+                    'signer_name' => $this->signerName,
+                    'signer_position' => $this->signerPosition,
+                    'signature_date' => now(), // Update timestamp
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'uwagi' => $this->signatureNotes,
+                ]);
+
+                $message = 'Podpis został zaktualizowany pomyślnie.';
+            } else {
+                // Create new signature
+                DeliverySignature::create([
+                    'delivery_id' => $this->currentDelivery->id,
+                    'signature_data' => $signatureData,
+                    'signer_name' => $this->signerName,
+                    'signer_position' => $this->signerPosition,
+                    'signature_date' => now(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'uwagi' => $this->signatureNotes,
+                ]);
+
+                $message = 'Podpis został zapisany pomyślnie.';
+            }
 
             $this->showSignatureModal = false;
-            $this->dispatch('signature-saved', ['message' => 'Podpis został zapisany.']);
+            $this->dispatch('signature-saved', ['message' => $message]);
 
         } catch (\Exception $e) {
             $this->dispatch('signature-save-failed', [
@@ -262,10 +311,6 @@ class DriverDashboard extends Component
         $this->currentDelivery = null;
     }
 
-    public function updatedSelectedDate()
-    {
-        // Automatycznie odśwież gdy zmieni się data
-    }
 
     public function toggleCompleted()
     {

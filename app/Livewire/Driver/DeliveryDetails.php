@@ -18,7 +18,9 @@ class DeliveryDetails extends Component
     public $showPhotoModal = false;
     public $showSignatureModal = false;
     public $showItemDetails = false;
+    public $showPhotoViewer = false;
     public $selectedItem = null;
+    public $selectedPhoto = null;
 
     // Photo upload
     public $newPhotos = [];
@@ -217,18 +219,25 @@ class DeliveryDetails extends Component
 
     public function openSignatureModal()
     {
+        $this->showSignatureModal = true;
+
+        // Check if signature already exists and pre-fill form
         if ($this->delivery->signature()->exists()) {
-            $this->dispatch('signature-already-exists', [
-                'message' => 'Podpis już istnieje dla tej dostawy.'
-            ]);
-            return;
+            $signature = $this->delivery->signature()->first();
+            $this->signatureData = $signature->signature_image; // Full base64 with prefix
+            $this->signerName = $signature->signer_name;
+            $this->signerPosition = $signature->signer_position ?? '';
+            $this->signatureNotes = $signature->uwagi ?? '';
+        } else {
+            // Clear form for new signature
+            $this->signatureData = '';
+            $this->signerName = '';
+            $this->signerPosition = '';
+            $this->signatureNotes = '';
         }
 
-        $this->showSignatureModal = true;
-        $this->signatureData = '';
-        $this->signerName = '';
-        $this->signerPosition = '';
-        $this->signatureNotes = '';
+        // Emit event to initialize signature pad
+        $this->dispatch('showSignatureModal');
     }
 
     public function saveSignature()
@@ -247,22 +256,43 @@ class DeliveryDetails extends Component
             // Remove base64 prefix if present
             $signatureData = preg_replace('/^data:image\/png;base64,/', '', $this->signatureData);
 
-            DeliverySignature::create([
-                'delivery_id' => $this->delivery->id,
-                'signature_data' => $signatureData,
-                'signer_name' => $this->signerName,
-                'signer_position' => $this->signerPosition,
-                'signature_date' => now(),
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-                'uwagi' => $this->signatureNotes,
-            ]);
+            // Check if signature already exists for this delivery
+            $existingSignature = $this->delivery->signature()->first();
+
+            if ($existingSignature) {
+                // Update existing signature
+                $existingSignature->update([
+                    'signature_data' => $signatureData,
+                    'signer_name' => $this->signerName,
+                    'signer_position' => $this->signerPosition,
+                    'signature_date' => now(), // Update timestamp
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'uwagi' => $this->signatureNotes,
+                ]);
+
+                $message = 'Podpis został zaktualizowany pomyślnie.';
+            } else {
+                // Create new signature
+                DeliverySignature::create([
+                    'delivery_id' => $this->delivery->id,
+                    'signature_data' => $signatureData,
+                    'signer_name' => $this->signerName,
+                    'signer_position' => $this->signerPosition,
+                    'signature_date' => now(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'uwagi' => $this->signatureNotes,
+                ]);
+
+                $message = 'Podpis został zapisany pomyślnie.';
+            }
 
             $this->delivery->refresh();
             $this->showSignatureModal = false;
 
             $this->dispatch('signature-saved', [
-                'message' => 'Podpis został zapisany pomyślnie.'
+                'message' => $message
             ]);
 
         } catch (\Exception $e) {
@@ -307,12 +337,20 @@ class DeliveryDetails extends Component
         $this->showItemDetails = true;
     }
 
+    public function showPhotoModal($photoId)
+    {
+        $this->selectedPhoto = $this->delivery->photos->find($photoId);
+        $this->showPhotoViewer = true;
+    }
+
     public function closeModal()
     {
         $this->showPhotoModal = false;
         $this->showSignatureModal = false;
         $this->showItemDetails = false;
+        $this->showPhotoViewer = false;
         $this->selectedItem = null;
+        $this->selectedPhoto = null;
     }
 
     public function refreshDelivery()

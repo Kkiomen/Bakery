@@ -39,7 +39,8 @@ class DeliveryManagement extends Component
 
     public function mount()
     {
-        $this->selectedDate = now()->format('Y-m-d');
+        // Domyślnie nie filtruj po dacie - pokaż wszystkie dostawy
+        $this->selectedDate = '';
     }
 
     public function render()
@@ -236,8 +237,32 @@ class DeliveryManagement extends Component
     public function resetFilters()
     {
         $this->reset(['statusFilter', 'driverFilter', 'priorityFilter', 'search']);
+        $this->selectedDate = '';
+        $this->resetPage();
+    }
+
+    public function showToday()
+    {
         $this->selectedDate = now()->format('Y-m-d');
         $this->resetPage();
+    }
+
+    public function showAll()
+    {
+        $this->selectedDate = '';
+        $this->resetPage();
+    }
+
+    public function viewDelivery($deliveryId)
+    {
+        return redirect()->route('driver.deliveries.show', $deliveryId);
+    }
+
+    public function editDelivery($deliveryId)
+    {
+        // Dispatch event to CreateDelivery component to load delivery for editing
+        $this->dispatch('editDelivery', deliveryId: $deliveryId);
+        $this->showCreateForm = true;
     }
 
     public function exportDeliveries()
@@ -260,6 +285,25 @@ class DeliveryManagement extends Component
     public function closeCreateModal()
     {
         $this->showCreateForm = false;
+    }
+
+    // Event listeners for CreateDelivery component
+    protected $listeners = [
+        'delivery-created' => 'onDeliveryCreated',
+        'hideCreateForm' => 'closeCreateModal',
+        'delivery-creation-cancelled' => 'closeCreateModal',
+    ];
+
+    public function onDeliveryCreated($data)
+    {
+        // Close the modal
+        $this->showCreateForm = false;
+
+        // Show success message
+        session()->flash('success', $data['message'] ?? 'Dostawa została utworzona pomyślnie!');
+
+        // Refresh the deliveries list
+        $this->resetPage();
     }
 
     public function updatedSelectedDate()

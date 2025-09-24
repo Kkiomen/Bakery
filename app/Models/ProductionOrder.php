@@ -20,9 +20,11 @@ class ProductionOrder extends Model
         'priorytet',
         'typ_zlecenia',
         'klient',
+        'contractor_id',
         'uwagi',
         'data_rozpoczecia',
         'data_zakonczenia',
+        'b2b_order_id',
     ];
 
     protected $casts = [
@@ -50,6 +52,11 @@ class ProductionOrder extends Model
     public function contractor(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Contractor::class);
+    }
+
+    public function b2bOrder(): BelongsTo
+    {
+        return $this->belongsTo(B2BOrder::class);
     }
 
     // Akcesory

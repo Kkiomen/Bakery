@@ -6,8 +6,11 @@ use App\Models\ProductionOrder;
 use App\Models\ProductionOrderItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Contractor;
 use Livewire\Component;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class ProductionOrderForm extends Component
 {
@@ -22,6 +25,7 @@ class ProductionOrderForm extends Component
     public $priorytet = 'normalny';
     public $typ_zlecenia = 'wewnetrzne';
     public $klient = '';
+    public $contractor_id = '';
     public $uwagi = '';
 
     // Pozycje zlecenia
@@ -36,8 +40,12 @@ class ProductionOrderForm extends Component
     // Pomocnicze
     public $products = [];
     public $users = [];
+    public $contractors = [];
     public $showProductSearch = false;
     public $productSearch = '';
+    public $showContractorSearch = false;
+    public $contractorSearch = '';
+    public $selectedContractor = null;
 
     protected function rules()
     {
@@ -49,6 +57,7 @@ class ProductionOrderForm extends Component
             'priorytet' => 'required|in:niski,normalny,wysoki,pilny',
             'typ_zlecenia' => 'required|in:wewnetrzne,sklep,b2b,hotel,inne',
             'klient' => 'nullable|string|max:255',
+            'contractor_id' => 'nullable|exists:contractors,id',
             'uwagi' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -74,6 +83,7 @@ class ProductionOrderForm extends Component
     {
         $this->users = User::orderBy('name')->get();
         $this->products = Product::active()->orderBy('nazwa')->get();
+        $this->contractors = Contractor::active()->orderBy('nazwa')->limit(20)->get();
 
         if ($order && $order->exists) {
             $this->order = $order;
@@ -81,13 +91,19 @@ class ProductionOrderForm extends Component
             $this->fill([
                 'nazwa' => $order->nazwa,
                 'opis' => $order->opis,
-                'data_produkcji' => $order->data_produkcji->toDateString(),
+                'data_produkcji' => Carbon::parse($order->data_produkcji)->toDateString(),
                 'user_id' => $order->user_id,
                 'priorytet' => $order->priorytet,
                 'typ_zlecenia' => $order->typ_zlecenia,
                 'klient' => $order->klient,
+                'contractor_id' => $order->contractor_id,
                 'uwagi' => $order->uwagi,
             ]);
+
+            // Załaduj dane kontrahenta jeśli jest przypisany
+            if ($order->contractor_id) {
+                $this->selectedContractor = $order->contractor;
+            }
 
             $this->items = $order->items->map(function ($item) {
                 return [
@@ -99,7 +115,7 @@ class ProductionOrderForm extends Component
                 ];
             })->toArray();
         } else {
-            $this->user_id = auth()->check() ? auth()->user()->id : 1;
+            $this->user_id = Auth::check() ? Auth::user()->id : 1;
             $this->data_produkcji = now()->addDay()->toDateString();
         }
     }
@@ -115,6 +131,43 @@ class ProductionOrderForm extends Component
         } else {
             $this->products = Product::active()->orderBy('nazwa')->limit(20)->get();
         }
+    }
+
+    public function updatedContractorSearch()
+    {
+        if (strlen($this->contractorSearch) >= 2) {
+            $this->contractors = Contractor::active()
+                ->where(function($query) {
+                    $query->where('nazwa', 'LIKE', '%' . $this->contractorSearch . '%')
+                          ->orWhere('nip', 'LIKE', '%' . $this->contractorSearch . '%')
+                          ->orWhere('miasto', 'LIKE', '%' . $this->contractorSearch . '%');
+                })
+                ->orderBy('nazwa')
+                ->limit(20)
+                ->get();
+        } else {
+            $this->contractors = Contractor::active()->orderBy('nazwa')->limit(20)->get();
+        }
+    }
+
+    public function selectContractor($contractorId)
+    {
+        $contractor = Contractor::find($contractorId);
+        if ($contractor) {
+            $this->contractor_id = $contractor->id;
+            $this->selectedContractor = $contractor;
+            $this->klient = $contractor->nazwa; // Wypełnij też pole klient dla kompatybilności
+            $this->showContractorSearch = false;
+            $this->contractorSearch = '';
+        }
+    }
+
+    public function clearContractor()
+    {
+        $this->contractor_id = '';
+        $this->selectedContractor = null;
+        $this->showContractorSearch = false;
+        $this->contractorSearch = '';
     }
 
     public function addItem()
@@ -173,8 +226,14 @@ class ProductionOrderForm extends Component
             'priorytet' => $sourceOrder->priorytet,
             'typ_zlecenia' => $sourceOrder->typ_zlecenia,
             'klient' => $sourceOrder->klient,
+            'contractor_id' => $sourceOrder->contractor_id,
             'uwagi' => $sourceOrder->uwagi,
         ]);
+
+        // Załaduj dane kontrahenta jeśli jest przypisany
+        if ($sourceOrder->contractor_id) {
+            $this->selectedContractor = $sourceOrder->contractor;
+        }
 
         $this->items = $sourceOrder->items->map(function ($item) {
             return [
@@ -203,6 +262,7 @@ class ProductionOrderForm extends Component
                     'priorytet' => $this->priorytet,
                     'typ_zlecenia' => $this->typ_zlecenia,
                     'klient' => $this->klient,
+                    'contractor_id' => $this->contractor_id,
                     'uwagi' => $this->uwagi,
                 ]);
 
@@ -217,6 +277,7 @@ class ProductionOrderForm extends Component
                     'priorytet' => $this->priorytet,
                     'typ_zlecenia' => $this->typ_zlecenia,
                     'klient' => $this->klient,
+                    'contractor_id' => $this->contractor_id,
                     'uwagi' => $this->uwagi,
                 ]);
 

@@ -81,7 +81,16 @@
     <div class="bg-white rounded-lg shadow p-4">
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-                <flux:input type="date" wire:model.live="selectedDate" label="Data" />
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                <div class="flex space-x-2">
+                    <flux:input type="date" wire:model.live="selectedDate" class="flex-1" />
+                    <flux:button wire:click="showToday" variant="outline" size="sm">
+                        Dzisiaj
+                    </flux:button>
+                </div>
+                <div class="text-xs text-gray-500 mt-1">
+                    Wybrana: {{ \Carbon\Carbon::parse($selectedDate)->format('d.m.Y') }}
+                </div>
             </div>
 
             <div>
@@ -434,38 +443,75 @@
 
     // Initialize signature pad when modal opens
     $wire.on('showSignatureModal', () => {
+        console.log('showSignatureModal event received (dashboard)');
         setTimeout(() => {
             const canvas = document.getElementById('signature-pad');
-            if (canvas) {
+            console.log('Canvas element:', canvas);
+
+            if (canvas && typeof SignaturePad !== 'undefined') {
+                console.log('Initializing SignaturePad (dashboard)');
                 signaturePad = new SignaturePad(canvas, {
                     backgroundColor: 'rgb(255, 255, 255)',
-                    penColor: 'rgb(0, 0, 0)'
+                    penColor: 'rgb(0, 0, 0)',
+                    minWidth: 1,
+                    maxWidth: 3,
+                    throttle: 16,
+                    minDistance: 5
                 });
 
                 signaturePad.addEventListener('endStroke', () => {
+                    console.log('Signature stroke ended (dashboard)');
                     $wire.updateSignatureData(signaturePad.toDataURL());
                 });
 
                 // Resize canvas
                 const resizeCanvas = () => {
                     const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                    canvas.width = canvas.offsetWidth * ratio;
-                    canvas.height = canvas.offsetHeight * ratio;
+                    const rect = canvas.getBoundingClientRect();
+                    canvas.width = rect.width * ratio;
+                    canvas.height = rect.height * ratio;
                     canvas.getContext('2d').scale(ratio, ratio);
-                    signaturePad.clear();
+                    canvas.style.width = rect.width + 'px';
+                    canvas.style.height = rect.height + 'px';
+                    if (signaturePad) {
+                        signaturePad.clear();
+                    }
                 };
 
                 window.addEventListener('resize', resizeCanvas);
                 resizeCanvas();
+
+                // Load existing signature if available
+                setTimeout(() => {
+                    loadExistingSignatureDashboard();
+                }, 100);
+            } else {
+                console.error('Canvas not found or SignaturePad not loaded (dashboard)');
             }
-        }, 100);
+        }, 200);
     });
+
+    // Function to load existing signature (dashboard)
+    function loadExistingSignatureDashboard() {
+        // Get signature data from Livewire component
+        const signatureData = @json($signatureData ?? '');
+        console.log('Loading existing signature (dashboard):', signatureData ? 'Found' : 'None');
+
+        if (signatureData && signaturePad && signatureData.startsWith('data:image')) {
+            console.log('Loading signature onto canvas (dashboard)');
+            signaturePad.fromDataURL(signatureData);
+        }
+    }
 
     // Clear signature function
     window.clearSignature = () => {
+        console.log('Clear signature called (dashboard)');
         if (signaturePad) {
             signaturePad.clear();
             $wire.updateSignatureData('');
+            console.log('Signature cleared (dashboard)');
+        } else {
+            console.error('SignaturePad not initialized (dashboard)');
         }
     };
 

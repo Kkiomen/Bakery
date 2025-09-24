@@ -4,6 +4,8 @@ namespace App\Livewire\B2B;
 
 use App\Models\B2BOrder;
 use App\Models\B2BOrderItem;
+use App\Models\ProductionOrder;
+use App\Models\User;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -172,6 +174,9 @@ class CreateOrder extends Component
                 ]);
             }
 
+            // Automatycznie utwórz zlecenie produkcyjne
+            $this->createProductionOrder($order);
+
             // Wyczyść koszyk
             session()->forget('b2b_cart');
 
@@ -188,6 +193,37 @@ class CreateOrder extends Component
         $sequence = str_pad(B2BOrder::whereDate('created_at', today())->count() + 1, 4, '0', STR_PAD_LEFT);
 
         return "{$prefix}-{$date}-{$sequence}";
+    }
+
+    private function createProductionOrder(B2BOrder $order)
+    {
+        // Utwórz zlecenie produkcyjne
+        $productionOrder = ProductionOrder::create([
+            'b2b_order_id' => $order->id,
+            'numer_zlecenia' => 'ZL-' . now()->format('Ymd') . '-' . str_pad(ProductionOrder::count() + 1, 4, '0', STR_PAD_LEFT),
+            'nazwa' => 'Zamówienie B2B - ' . $order->client->company_name,
+            'klient' => $order->client->company_name,
+            'data_produkcji' => Carbon::parse($order->delivery_date)->subDay(), // Dzień przed dostawą
+            'status' => 'oczekujace',
+            'priorytet' => 'normalny',
+            'typ_zlecenia' => 'b2b',
+            'user_id' => User::first()->id ?? 1, // Pierwszy dostępny użytkownik
+            'uwagi' => 'Zlecenie utworzone automatycznie z zamówienia B2B #' . $order->order_number,
+        ]);
+
+        // Dodaj pozycje zlecenia produkcyjnego
+        foreach ($order->items as $item) {
+            $productionOrder->items()->create([
+                'product_id' => $item->product_id,
+                'ilosc' => $item->quantity,
+                'status' => 'oczekujace',
+            ]);
+        }
+
+        // Zaktualizuj status zamówienia
+        $order->update(['status' => 'w_produkcji']);
+
+        return $productionOrder;
     }
 
     public function getCartTotal()

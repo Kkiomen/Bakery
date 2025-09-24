@@ -22,6 +22,7 @@
                     <flux:navlist.item :href="route('recipes.index')" :current="request()->routeIs('recipes.*')" wire:navigate>📋 Kartoteka receptur</flux:navlist.item>
                     <flux:navlist.item :href="route('production.orders.index')" :current="request()->routeIs('production.*')" wire:navigate>🏭 Zarządzanie produkcją</flux:navlist.item>
         <flux:navlist.item :href="route('contractors.index')" :current="request()->routeIs('contractors.*')" wire:navigate>👥 Kontrahenci</flux:navlist.item>
+        <flux:navlist.item :href="route('admin.b2b-orders')" :current="request()->routeIs('admin.b2b-orders')" wire:navigate>📋 Zamówienia B2B</flux:navlist.item>
         <flux:navlist.item :href="route('admin.b2b-clients')" :current="request()->routeIs('admin.b2b-clients')" wire:navigate>🏢 Klienci B2B</flux:navlist.item>
         <flux:navlist.item :href="route('admin.impersonate')" :current="request()->routeIs('admin.impersonate')" wire:navigate>🎭 Testuj jako klient</flux:navlist.item>
     </flux:navlist.group>

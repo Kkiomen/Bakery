@@ -13,15 +13,19 @@ class Delivery extends Model
     protected $fillable = [
         'numer_dostawy',
         'production_order_id',
+        'contractor_id',
         'driver_id',
         'status',
         'priorytet',
         'data_dostawy',
         'godzina_planowana',
+        'godzina_od',
+        'godzina_do',
         'godzina_rozpoczecia',
         'godzina_zakonczenia',
         'klient_nazwa',
         'klient_adres',
+        'adres_dostawy',
         'klient_telefon',
         'klient_email',
         'osoba_kontaktowa',
@@ -30,11 +34,13 @@ class Delivery extends Model
         'miasto',
         'latitude',
         'longitude',
+        'uwagi',
         'uwagi_dostawy',
         'uwagi_kierowcy',
         'kolejnosc_dostawy',
         'dystans_km',
         'czas_dojazdu_min',
+        'typ_dostawy',
     ];
 
     protected $casts = [
@@ -70,6 +76,11 @@ class Delivery extends Model
     public function driver(): BelongsTo
     {
         return $this->belongsTo(User::class, 'driver_id');
+    }
+
+    public function contractor(): BelongsTo
+    {
+        return $this->belongsTo(Contractor::class);
     }
 
     public function items(): HasMany

@@ -76,6 +76,27 @@ class B2BOrder extends Model
         return $this->belongsTo(RecurringOrder::class);
     }
 
+    public function productionOrders(): HasMany
+    {
+        return $this->hasMany(ProductionOrder::class);
+    }
+
+    // Akcesory
+    public function getNumerZamowieniaAttribute()
+    {
+        return $this->order_number;
+    }
+
+    public function getWartoscBruttoAttribute()
+    {
+        return $this->total_amount;
+    }
+
+    public function getDataRealizacjiAttribute()
+    {
+        return $this->delivery_date ? Carbon::parse($this->delivery_date) : null;
+    }
+
     // Scopes
     public function scopeByStatus($query, $status)
     {

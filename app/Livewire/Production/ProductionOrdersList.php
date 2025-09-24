@@ -157,7 +157,7 @@ class ProductionOrdersList extends Component
 
     public function render()
     {
-        $query = ProductionOrder::with(['user', 'items.product'])
+        $query = ProductionOrder::with(['user', 'items.product', 'b2bOrder.client'])
             ->when($this->search, function ($q) {
                 $q->search($this->search);
             })

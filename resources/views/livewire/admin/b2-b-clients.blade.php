@@ -244,6 +244,10 @@
                             </div>
 
                             <div class="ml-6 flex flex-col space-y-2">
+                                <button wire:click="openDetailsModal({{ $client->id }})"
+                                        class="bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700">
+                                    👁️ Szczegóły
+                                </button>
                                 <button wire:click="openEditModal({{ $client->id }})"
                                         class="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700">
                                     ✏️ Edytuj
@@ -352,6 +356,190 @@
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    @endif
+
+    <!-- Modal szczegółów klienta -->
+    @if($showDetailsModal && $selectedClient)
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-xl font-medium text-gray-900">👁️ Szczegóły klienta: {{ $selectedClient->company_name }}</h3>
+                    <button wire:click="closeDetailsModal"
+                            class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-6 overflow-y-auto max-h-[calc(90vh-120px)] space-y-6">
+                    <!-- Informacje podstawowe -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-900 mb-4">📋 Podstawowe informacje</h4>
+                            <dl class="space-y-2">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Nazwa firmy</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->company_name }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">NIP</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->nip ?: '-' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Email</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->email }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Telefon</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->phone ?: '-' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                                    <dd class="text-sm">
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                            @if($selectedClient->status === 'active') bg-green-100 text-green-800
+                                            @elseif($selectedClient->status === 'pending') bg-yellow-100 text-yellow-800
+                                            @elseif($selectedClient->status === 'suspended') bg-red-100 text-red-800
+                                            @else bg-gray-100 text-gray-800 @endif">
+                                            {{ ucfirst($selectedClient->status) }}
+                                        </span>
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-900 mb-4">📍 Adres i kontakt</h4>
+                            <dl class="space-y-2">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Adres</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->address }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Kod pocztowy</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->postal_code }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Miasto</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->city }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Osoba kontaktowa</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->contact_person ?: '-' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Telefon kontaktowy</dt>
+                                    <dd class="text-sm text-gray-900">{{ $selectedClient->contact_phone ?: '-' }}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <!-- Ostatnie zamówienia -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <h4 class="font-semibold text-gray-900">📦 Ostatnie zamówienia ({{ $selectedClient->orders->count() }})</h4>
+                            <a href="{{ route('admin.b2b-orders') }}?clientFilter={{ $selectedClient->id }}"
+                               class="text-blue-600 hover:text-blue-800 text-sm">
+                                Zobacz wszystkie →
+                            </a>
+                        </div>
+
+                        @if($selectedClient->orders->count() > 0)
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-100">
+                                        <tr>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Numer</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Wartość</th>
+                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Akcje</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200">
+                                        @foreach($selectedClient->orders as $order)
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-4 py-2 text-sm text-gray-900">{{ $order->numer_zamowienia }}</td>
+                                            <td class="px-4 py-2 text-sm text-gray-900">{{ $order->created_at->format('d.m.Y') }}</td>
+                                            <td class="px-4 py-2">
+                                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full
+                                                    @switch($order->status)
+                                                        @case('oczekujace') bg-yellow-100 text-yellow-800 @break
+                                                        @case('potwierdzone') bg-blue-100 text-blue-800 @break
+                                                        @case('w_produkcji') bg-orange-100 text-orange-800 @break
+                                                        @case('zrealizowane') bg-green-100 text-green-800 @break
+                                                        @default bg-gray-100 text-gray-800
+                                                    @endswitch
+                                                ">
+                                                    {{ ucfirst(str_replace('_', ' ', $order->status)) }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-2 text-sm text-gray-900">{{ number_format($order->wartosc_brutto, 2) }} zł</td>
+                                            <td class="px-4 py-2">
+                                                <button wire:click="goToOrder({{ $order->id }})"
+                                                        class="text-blue-600 hover:text-blue-800 text-xs">
+                                                    Zobacz
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="text-gray-500 text-center py-4">Brak zamówień</p>
+                        @endif
+                    </div>
+
+                    <!-- Zamówienia cykliczne -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-900 mb-4">🔄 Zamówienia cykliczne ({{ $selectedClient->recurringOrders->count() }})</h4>
+
+                        @if($selectedClient->recurringOrders->count() > 0)
+                            <div class="space-y-3">
+                                @foreach($selectedClient->recurringOrders as $recurringOrder)
+                                <div class="border border-gray-200 rounded-lg p-3">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h5 class="font-medium text-gray-900">{{ $recurringOrder->name }}</h5>
+                                            <p class="text-sm text-gray-500">{{ $recurringOrder->description }}</p>
+                                            <div class="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+                                                <span>Częstotliwość: {{ $recurringOrder->frequency }}</span>
+                                                <span>Następne: {{ $recurringOrder->next_generation_at ? $recurringOrder->next_generation_at->format('d.m.Y') : '-' }}</span>
+                                                <span class="inline-flex px-2 py-1 rounded-full
+                                                    {{ $recurringOrder->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                                                    {{ $recurringOrder->is_active ? 'Aktywne' : 'Nieaktywne' }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-sm font-medium text-gray-900">{{ number_format($recurringOrder->estimated_total, 2) }} zł</div>
+                                            <div class="text-xs text-gray-500">szacowana wartość</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-gray-500 text-center py-4">Brak zamówień cyklicznych</p>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between items-center">
+                    <button wire:click="impersonateClient({{ $selectedClient->id }})"
+                            class="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">
+                        👤 Przełącz na klienta
+                    </button>
+                    <button wire:click="closeDetailsModal"
+                            class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
+                        Zamknij
+                    </button>
+                </div>
             </div>
         </div>
     @endif

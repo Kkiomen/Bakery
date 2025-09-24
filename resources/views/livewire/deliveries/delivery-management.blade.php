@@ -1,4 +1,53 @@
 <div class="space-y-6">
+    <!-- Flash Messages -->
+    @if (session()->has('success'))
+        <div class="rounded-md bg-green-50 p-4 border border-green-200" x-data="{ show: true }" x-show="show" x-transition>
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-green-800">{{ session('success') }}</p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <div class="-mx-1.5 -my-1.5">
+                        <button @click="show = false" class="inline-flex rounded-md bg-green-50 p-1.5 text-green-500 hover:bg-green-100">
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="rounded-md bg-red-50 p-4 border border-red-200" x-data="{ show: true }" x-show="show" x-transition>
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-red-800">{{ session('error') }}</p>
+                </div>
+                <div class="ml-auto pl-3">
+                    <div class="-mx-1.5 -my-1.5">
+                        <button @click="show = false" class="inline-flex rounded-md bg-red-50 p-1.5 text-red-500 hover:bg-red-100">
+                            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -116,11 +165,29 @@
     <div class="bg-white rounded-lg shadow p-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <div>
-                <flux:input
-                    type="date"
-                    wire:model.live="selectedDate"
-                    label="Data dostawy"
-                />
+                <label class="block text-sm font-medium text-gray-700 mb-1">Data dostawy</label>
+                <div class="flex space-x-2">
+                    <flux:input
+                        type="date"
+                        wire:model.live="selectedDate"
+                        class="flex-1"
+                    />
+                    <flux:button wire:click="showToday" variant="outline" size="sm">
+                        Dzisiaj
+                    </flux:button>
+                    <flux:button wire:click="showAll" variant="outline" size="sm">
+                        Wszystkie
+                    </flux:button>
+                </div>
+                @if($selectedDate)
+                    <div class="text-xs text-gray-500 mt-1">
+                        Filtrowanie: {{ \Carbon\Carbon::parse($selectedDate)->format('d.m.Y') }}
+                    </div>
+                @else
+                    <div class="text-xs text-gray-500 mt-1">
+                        Wyświetlanie: Wszystkie dostawy
+                    </div>
+                @endif
             </div>
 
             <div>
@@ -323,6 +390,20 @@
 
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end space-x-2">
+                                <flux:button wire:click="viewDelivery({{ $delivery->id }})"
+                                           variant="ghost" size="sm"
+                                           title="Zobacz szczegóły">
+                                    👁️
+                                </flux:button>
+
+                                @if($delivery->status !== 'anulowana' && $delivery->status !== 'dostarczona')
+                                    <flux:button wire:click="editDelivery({{ $delivery->id }})"
+                                               variant="ghost" size="sm"
+                                               title="Edytuj dostawę">
+                                        ✏️
+                                    </flux:button>
+                                @endif
+
                                 @if($delivery->driver)
                                     <flux:button wire:click="unassignDriver({{ $delivery->id }})"
                                                variant="ghost" size="sm">
@@ -368,15 +449,6 @@
                 {{ $deliveries->links() }}
             </div>
         @endif
-    </div>
-
-    <!-- Debug info -->
-    <div class="bg-yellow-100 p-4 mb-4 rounded">
-        <div class="text-sm">
-            <strong>Debug:</strong><br>
-            showCreateForm = {{ $showCreateForm ? 'true' : 'false' }}<br>
-            testMessage = {{ $testMessage }}
-        </div>
     </div>
 
     <!-- Create Delivery Modal -->

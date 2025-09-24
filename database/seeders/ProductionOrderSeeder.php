@@ -7,6 +7,7 @@ use App\Models\ProductionOrder;
 use App\Models\ProductionOrderItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Contractor;
 use Carbon\Carbon;
 
 class ProductionOrderSeeder extends Seeder
@@ -15,6 +16,7 @@ class ProductionOrderSeeder extends Seeder
     {
         $users = User::all();
         $products = Product::all();
+        $contractors = Contractor::active()->get();
 
         if ($users->isEmpty() || $products->isEmpty()) {
             $this->command->warn('Brak użytkowników lub produktów. Uruchom najpierw inne seedery.');
@@ -26,13 +28,13 @@ class ProductionOrderSeeder extends Seeder
         $types = ['wewnetrzne', 'sklep', 'b2b', 'hotel'];
 
         // Zlecenia na dziś
-        $this->createOrdersForDate(now(), $users, $products, $statuses, $priorities, $types, 3);
+        $this->createOrdersForDate(now(), $users, $products, $contractors, $statuses, $priorities, $types, 3);
 
         // Zlecenia na jutro
-        $this->createOrdersForDate(now()->addDay(), $users, $products, $statuses, $priorities, $types, 5);
+        $this->createOrdersForDate(now()->addDay(), $users, $products, $contractors, $statuses, $priorities, $types, 5);
 
         // Zlecenia na pojutrze
-        $this->createOrdersForDate(now()->addDays(2), $users, $products, $statuses, $priorities, $types, 4);
+        $this->createOrdersForDate(now()->addDays(2), $users, $products, $contractors, $statuses, $priorities, $types, 4);
 
         // Zlecenia na następny tydzień
         for ($i = 3; $i <= 9; $i++) {
@@ -40,6 +42,7 @@ class ProductionOrderSeeder extends Seeder
                 now()->addDays($i),
                 $users,
                 $products,
+                $contractors,
                 $statuses,
                 $priorities,
                 $types,
@@ -48,13 +51,13 @@ class ProductionOrderSeeder extends Seeder
         }
 
         // Kilka opóźnionych zleceń (z przeszłości)
-        $this->createOrdersForDate(now()->subDays(2), $users, $products, ['oczekujace', 'w_produkcji'], $priorities, $types, 2);
-        $this->createOrdersForDate(now()->subDay(), $users, $products, ['oczekujace', 'w_produkcji'], $priorities, $types, 1);
+        $this->createOrdersForDate(now()->subDays(2), $users, $products, $contractors, ['oczekujace', 'w_produkcji'], $priorities, $types, 2);
+        $this->createOrdersForDate(now()->subDay(), $users, $products, $contractors, ['oczekujace', 'w_produkcji'], $priorities, $types, 1);
 
         $this->command->info('Utworzono przykładowe zlecenia produkcji.');
     }
 
-    private function createOrdersForDate(Carbon $date, $users, $products, $statuses, $priorities, $types, $count)
+    private function createOrdersForDate(Carbon $date, $users, $products, $contractors, $statuses, $priorities, $types, $count)
     {
         for ($i = 0; $i < $count; $i++) {
             $status = $statuses[array_rand($statuses)];
@@ -73,16 +76,25 @@ class ProductionOrderSeeder extends Seeder
                 'Produkcja standardowa',
             ];
 
-            $clients = [
-                'Sklep "Piekarnia Pod Kasztanem"',
-                'Hotel "Grand"',
-                'Restauracja "Smaki"',
-                null,
-                'Państwo Kowalski',
-                'Delikatesy "Smaczne"',
-                'Firma cateringowa "Smakosze"',
-                null,
-            ];
+            // Losowo przypisz kontrahenta (70% szans)
+            $contractor = null;
+            $clientName = null;
+
+            if (!$contractors->isEmpty() && rand(1, 10) <= 7) {
+                $contractor = $contractors->random();
+                $clientName = $contractor->nazwa;
+            } else {
+                // Fallback na losowe nazwy klientów
+                $fallbackClients = [
+                    'Sklep "Piekarnia Pod Kasztanem"',
+                    'Hotel "Grand"',
+                    'Restauracja "Smaki"',
+                    'Państwo Kowalski',
+                    'Delikatesy "Smaczne"',
+                    'Firma cateringowa "Smakosze"',
+                ];
+                $clientName = $fallbackClients[array_rand($fallbackClients)];
+            }
 
             $order = ProductionOrder::create([
                 'nazwa' => $orderNames[array_rand($orderNames)],
@@ -92,7 +104,8 @@ class ProductionOrderSeeder extends Seeder
                 'status' => $status,
                 'priorytet' => $priority,
                 'typ_zlecenia' => $type,
-                'klient' => $clients[array_rand($clients)],
+                'klient' => $clientName,
+                'contractor_id' => $contractor?->id,
                 'uwagi' => rand(0, 1) ? 'Proszę o szczególną uwagę na jakość.' : null,
                 'data_rozpoczecia' => in_array($status, ['w_produkcji', 'zakonczone']) ? $date->copy()->subHours(rand(1, 8)) : null,
                 'data_zakonczenia' => $status === 'zakonczone' ? $date->copy()->subHours(rand(0, 2)) : null,

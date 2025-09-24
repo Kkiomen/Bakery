@@ -52,6 +52,12 @@ class DeliveryPhoto extends Model
         );
     }
 
+    // Alternative URL method similar to ProductImage
+    public function getImageUrlAttribute(): string
+    {
+        return asset('storage/' . $this->file_path);
+    }
+
     protected function typZdjeciaLabel(): Attribute
     {
         return Attribute::make(
